@@ -27,6 +27,16 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 默认邮件模板无需修改即可先通过 `/auth/callback` 联调。
 
+## 数据库迁移
+
+首次配置项目时，在 Supabase SQL Editor 执行：
+
+```text
+supabase/migrations/202608300001_create_libraries.sql
+```
+
+迁移会创建 `libraries` 表、更新时间触发器和 4 条 RLS policy。执行后应确认该表已启用 RLS；登录用户只能读写 `owner_id = auth.uid()` 的记录。
+
 ## 验收
 
 1. 打开 `/login` 输入测试邮箱。
@@ -34,3 +44,4 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 3. 点击邮件链接进入 `/dashboard`。
 4. 点击退出登录后回到首页。
 5. 再次访问 `/dashboard` 应跳转 `/login`。
+6. 在 `/libraries` 创建两个知识库并确认刷新后仍只显示当前账号的数据。
