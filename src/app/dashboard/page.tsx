@@ -13,14 +13,15 @@ export default async function DashboardPage() {
   if (!getSupabasePublicEnv()) redirect("/login?error=config");
 
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/login");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect("/login");
 
-  const email = typeof data.claims.email === "string" ? data.claims.email : "已登录用户";
-  const [{ data: libraries }, { data: documentRows }] = await Promise.all([
+  const [{ data: profile }, { data: libraries }, { data: documentRows }] = await Promise.all([
+    supabase.from("profiles").select("username_normalized").eq("id", auth.user.id).maybeSingle(),
     supabase.from("libraries").select("id, owner_id, name, description, created_at, updated_at").order("updated_at", { ascending: false }).limit(6),
     supabase.from("documents").select("library_id"),
   ]);
+  if (!profile) redirect("/account/setup");
   const recentLibraries = (libraries ?? []) as Library[];
   const documentCounts = (documentRows ?? []).reduce<Record<string, number>>((counts, row) => {
     counts[row.library_id] = (counts[row.library_id] ?? 0) + 1;
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
       <div className="page-container">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm text-amber-700">当前账号 · {email}</p>
+            <p className="text-sm text-amber-700">当前账号 · @{profile.username_normalized}</p>
             <h1 className="mt-2 font-serif text-3xl font-semibold">欢迎回到你的研究空间</h1>
             <p className="mt-3 text-stone-500">从一个知识库开始，整理课程资料与研究文献。</p>
           </div>

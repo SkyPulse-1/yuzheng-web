@@ -1,8 +1,15 @@
 import Link from "next/link";
 
 import { signOut } from "@/app/dashboard/actions";
+import { createClient } from "@/lib/supabase/server";
 
-export function AppHeader() {
+export async function AppHeader() {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const { data: profile } = auth.user
+    ? await supabase.from("profiles").select("username_normalized").eq("id", auth.user.id).maybeSingle()
+    : { data: null };
+
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
@@ -13,6 +20,7 @@ export function AppHeader() {
         <nav aria-label="主导航" className="flex items-center gap-1 sm:gap-2">
           <Link href="/dashboard" className="hidden rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 sm:inline-flex">首页</Link>
           <Link href="/libraries" className="rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900">知识库</Link>
+          {profile ? <span className="hidden rounded-lg bg-stone-100 px-3 py-2 text-xs text-stone-500 md:inline-flex">@{profile.username_normalized}</span> : null}
           <form action={signOut}><button className="rounded-lg px-3 py-2 text-sm text-stone-500 transition hover:bg-stone-100 hover:text-stone-900">退出</button></form>
         </nav>
       </div>
