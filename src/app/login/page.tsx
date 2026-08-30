@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requestMagicLink, signInWithPassword, signUpWithPassword } from "@/app/login/actions";
+import { signInWithUsername, signUpWithUsername } from "@/app/login/actions";
 import { PasswordField } from "@/app/login/password-field";
 import { SubmitButton } from "@/app/login/submit-button";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
@@ -10,21 +10,20 @@ type LoginPageProps = {
 };
 
 const errorMessages: Record<string, string> = {
-  auth: "登录链接无效或已经过期，请重新获取。",
-  config: "Supabase 尚未连接，完成项目配置后即可发送登录邮件。",
-  email: "请输入有效的邮箱地址。",
-  send: "登录邮件发送失败，请稍后重试。",
-  credentials: "邮箱或密码不正确。",
+  config: "登录服务尚未配置完成，请稍后再试。",
+  username: "用户名需为 3–24 位英文、数字或下划线。",
+  credentials: "用户名或密码错误。",
   password: "密码至少需要 8 个字符。",
-  signup: "注册失败，该邮箱可能已经注册。",
+  password_match: "两次输入的密码不一致。",
+  username_taken: "这个用户名已经被使用，请换一个。",
+  signup: "注册失败，请稍后重试。",
+  confirmation: "注册服务设置尚未完成，请联系管理员。",
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const errorCode = typeof params.error === "string" ? params.error : "";
-  const sent = params.sent === "1";
-  const registered = params.registered === "1";
-  const mode = params.mode === "signup" ? "signup" : params.mode === "magic" ? "magic" : "password";
+  const mode = params.mode === "signup" ? "signup" : "password";
   const configured = Boolean(getSupabasePublicEnv());
 
   return (
@@ -47,7 +46,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <div className="mt-12">
                 <p className="text-sm font-medium text-amber-700">欢迎使用语证</p>
                 <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight">{mode === "signup" ? "创建你的知识空间" : "登录你的知识空间"}</h2>
-                <p className="mt-3 text-sm leading-6 text-stone-500">{mode === "signup" ? "注册后即可创建知识库并上传资料。" : mode === "magic" ? "我们会向你的邮箱发送一次性登录链接。" : "输入邮箱和密码，继续整理你的研究资料。"}</p>
+                <p className="mt-3 text-sm leading-6 text-stone-500">{mode === "signup" ? "不需要邮箱，注册后即可在多台设备使用同一个知识空间。" : "输入用户名和密码，继续整理你的研究资料。"}</p>
               </div>
 
               <div className="mt-8 grid grid-cols-2 rounded-xl bg-stone-100 p-1" aria-label="账号入口">
@@ -55,38 +54,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <Link href="/login?mode=signup" className={`rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${mode === "signup" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>注册</Link>
               </div>
 
-              {sent ? (
-                <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-900">登录链接已发送，请前往邮箱查收。链接仅可使用一次。</div>
-              ) : null}
-              {registered ? (
-                <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-900">账号已创建。若项目要求邮箱确认，请先完成确认，再返回这里登录。</div>
-              ) : null}
               {errorCode ? (
-                <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">{errorMessages[errorCode] ?? errorMessages.send}</div>
+                <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">{errorMessages[errorCode] ?? errorMessages.signup}</div>
               ) : null}
 
-              {mode === "magic" ? <form action={requestMagicLink} className="mt-6 space-y-5">
+              <form action={mode === "signup" ? signUpWithUsername : signInWithUsername} className="mt-6 space-y-5">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium">邮箱地址</span>
-                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="form-field" />
-                </label>
-                <SubmitButton />
-              </form> : null}
-
-              {mode === "password" || mode === "signup" ? <form action={mode === "signup" ? signUpWithPassword : signInWithPassword} className="mt-6 space-y-5">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium">邮箱地址</span>
-                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="form-field" />
+                  <span className="mb-2 block text-sm font-medium">用户名</span>
+                  <input type="text" name="username" autoComplete="username" required minLength={3} maxLength={24} pattern="[A-Za-z0-9_]+" placeholder="例如：skypulse_1" className="form-field" />
+                  {mode === "signup" ? <span className="mt-2 block text-xs text-stone-400">3–24 位英文、数字或下划线，不区分大小写</span> : null}
                 </label>
                 <PasswordField isNew={mode === "signup"} />
+                {mode === "signup" ? <PasswordField name="passwordConfirm" label="确认密码" isNew /> : null}
                 <SubmitButton label={mode === "signup" ? "创建账号" : "登录"} pendingLabel={mode === "signup" ? "正在创建…" : "正在登录…"} />
-              </form> : null}
+              </form>
 
-              <div className="mt-6 border-t border-stone-200 pt-5 text-center text-sm">
-                {mode === "magic" ? <Link href="/login" className="font-medium text-stone-600 hover:text-amber-800">返回密码登录</Link> : <><span className="text-stone-400">其他方式：</span><Link href="/login?mode=magic" className="font-medium text-stone-600 hover:text-amber-800">邮件登录链接</Link></>}
-              </div>
+              {mode === "password" ? <div className="mt-6 text-center text-sm"><Link href="/account/recovery" className="font-medium text-stone-600 hover:text-amber-800">忘记密码？使用恢复码</Link></div> : null}
 
-              {!configured ? <p className="mt-5 text-xs leading-5 text-stone-500">当前为界面预览状态；连接 Supabase 项目后即可发送邮件。</p> : null}
+              {!configured ? <p className="mt-5 text-xs leading-5 text-stone-500">当前为界面预览状态；连接 Supabase 项目后即可注册和登录。</p> : null}
               <p className="mt-10 border-t border-stone-200 pt-6 text-xs leading-5 text-stone-400">登录即表示你同意仅将语证用于合法的课程学习与研究材料管理。</p>
             </div>
           </div>

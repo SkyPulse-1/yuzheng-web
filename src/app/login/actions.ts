@@ -1,77 +1,74 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { getUsernameSecrets } from "@/lib/auth/config";
+import { setRecoveryDeliveryCookie } from "@/lib/auth/recovery-delivery";
+import { digestRecoveryCode, generateRecoveryCode } from "@/lib/auth/recovery";
+import { deriveInternalEmail, validateUsername } from "@/lib/auth/username";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function readCredentials(formData: FormData) {
+  const passwordValue = formData.get("password");
+  const confirmationValue = formData.get("passwordConfirm");
+  return {
+    username: validateUsername(formData.get("username")),
+    password: typeof passwordValue === "string" ? passwordValue : "",
+    passwordConfirm: typeof confirmationValue === "string" ? confirmationValue : "",
+  };
+}
 
-export async function requestMagicLink(formData: FormData) {
-  const emailValue = formData.get("email");
-  const email = typeof emailValue === "string" ? emailValue.trim() : "";
+function ensurePublicConfiguration(mode: "password" | "signup") {
+  if (!getSupabasePublicEnv()) redirect(`/login?mode=${mode}&error=config`);
+  try {
+    return getUsernameSecrets();
+  } catch {
+    redirect(`/login?mode=${mode}&error=config`);
+  }
+}
 
-  if (!emailPattern.test(email)) redirect("/login?mode=magic&error=email");
-  if (!getSupabasePublicEnv()) redirect("/login?mode=magic&error=config");
+export async function signInWithUsername(formData: FormData) {
+  const { username, password } = readCredentials(formData);
+  if (!username.ok) redirect("/login?mode=password&error=username");
+  if (password.length < 8) redirect("/login?mode=password&error=credentials");
+  const { usernameSecret } = ensurePublicConfiguration("password");
 
-  const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get("origin") ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    "http://localhost:3000";
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
+  const { error } = await supabase.auth.signInWithPassword({
+    email: deriveInternalEmail(username.username, usernameSecret),
+    password,
+  });
+  if (error) redirect("/login?mode=password&error=credentials");
+  redirect("/dashboard");
+}
+
+export async function signUpWithUsername(formData: FormData) {
+  const { username, password, passwordConfirm } = readCredentials(formData);
+  if (!username.ok) redirect("/login?mode=signup&error=username");
+  if (password.length < 8) redirect("/login?mode=signup&error=password");
+  if (password !== passwordConfirm) redirect("/login?mode=signup&error=password_match");
+  const { usernameSecret, recoverySecret } = ensurePublicConfiguration("signup");
+
+  const recoveryCode = generateRecoveryCode();
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: deriveInternalEmail(username.username, usernameSecret),
+    password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
-      shouldCreateUser: true,
+      data: {
+        username: username.username,
+        recovery_digest: digestRecoveryCode(recoveryCode, recoverySecret),
+      },
     },
   });
 
   if (error) {
-    redirect(`/login?mode=magic&error=${encodeURIComponent(error.code ?? "send")}`);
+    const duplicateCodes = new Set(["email_exists", "user_already_exists", "user_already_registered"]);
+    redirect(`/login?mode=signup&error=${duplicateCodes.has(error.code ?? "") ? "username_taken" : "signup"}`);
   }
+  if (!data.session) redirect("/login?mode=signup&error=confirmation");
 
-  redirect("/login?mode=magic&sent=1");
-}
-
-function readCredentials(formData: FormData) {
-  const emailValue = formData.get("email");
-  const passwordValue = formData.get("password");
-  return {
-    email: typeof emailValue === "string" ? emailValue.trim() : "",
-    password: typeof passwordValue === "string" ? passwordValue : "",
-  };
-}
-
-export async function signInWithPassword(formData: FormData) {
-  const { email, password } = readCredentials(formData);
-  if (!emailPattern.test(email)) redirect("/login?mode=password&error=email");
-  if (password.length < 8) redirect("/login?mode=password&error=password");
-  if (!getSupabasePublicEnv()) redirect("/login?mode=password&error=config");
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect(`/login?mode=password&error=${encodeURIComponent(error.code ?? "credentials")}`);
-  redirect("/dashboard");
-}
-
-export async function signUpWithPassword(formData: FormData) {
-  const { email, password } = readCredentials(formData);
-  if (!emailPattern.test(email)) redirect("/login?mode=signup&error=email");
-  if (password.length < 8) redirect("/login?mode=signup&error=password");
-  if (!getSupabasePublicEnv()) redirect("/login?mode=signup&error=config");
-
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo: `${origin}/auth/callback?next=/dashboard` },
-  });
-  if (error) redirect(`/login?mode=signup&error=${encodeURIComponent(error.code ?? "signup")}`);
-  if (data.session) redirect("/dashboard");
-  redirect("/login?mode=signup&registered=1");
+  await setRecoveryDeliveryCookie(recoveryCode);
+  redirect("/account/recovery-code");
 }

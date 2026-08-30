@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 
-export function PasswordField({ isNew = false }: { isNew?: boolean }) {
+export function PasswordField({
+  name = "password",
+  label = "密码",
+  isNew = false,
+}: {
+  name?: string;
+  label?: string;
+  isNew?: boolean;
+}) {
   const [visible, setVisible] = useState(false);
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium">密码</span>
+      <span className="mb-2 block text-sm font-medium">{label}</span>
       <span className="relative block">
         <input
           type={visible ? "text" : "password"}
-          name="password"
+          name={name}
           minLength={8}
           autoComplete={isNew ? "new-password" : "current-password"}
           required
