@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 
 import { validateDocumentFile } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
+import { isVikingConfigured } from "@/lib/vikingdb/config";
+import { addVikingDocument } from "@/lib/vikingdb/client";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -68,9 +70,28 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "文件保存失败，请重试。" }, { status: 500 });
   }
 
+  let knowledgeBaseDocumentId: string | null = null;
+  if (isVikingConfigured()) {
+    const { data: signed } = await supabase.storage.from("documents").createSignedUrl(storagePath, 1800);
+    try {
+      if (!signed?.signedUrl) throw new Error("Signed URL unavailable");
+      knowledgeBaseDocumentId = await addVikingDocument({
+        documentId,
+        ownerId: user.id,
+        libraryId,
+        originalName: value.name,
+        documentType: validation.extension,
+        signedUrl: signed.signedUrl,
+      });
+    } catch {
+      await supabase.from("documents").update({ status: "FAILED", error_message: "知识库入库失败，可稍后重试。" }).eq("id", documentId);
+      return NextResponse.json({ error: "文件已保存，但知识库入库失败，可稍后重试。" }, { status: 502 });
+    }
+  }
+
   const { data, error: updateError } = await supabase
     .from("documents")
-    .update({ status: "PROCESSING", error_message: null })
+    .update({ status: "PROCESSING", error_message: null, kb_document_id: knowledgeBaseDocumentId })
     .eq("id", documentId)
     .select("id, owner_id, library_id, original_name, mime_type, size_bytes, storage_path, kb_document_id, status, error_message, page_count, created_at, updated_at")
     .single();

@@ -29,12 +29,16 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [workingId, setWorkingId] = useState("");
   const [currentFile, setCurrentFile] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!documents.some((document) => document.status === "UPLOADING" || document.status === "PROCESSING" || document.status === "DELETING")) return;
-    const timer = window.setInterval(() => router.refresh(), 10000);
+    const pendingIds = documents.filter((document) => document.status === "PROCESSING" && document.kb_document_id).map((document) => document.id);
+    const timer = window.setInterval(() => {
+      void Promise.all(pendingIds.map((id) => fetch(`/api/documents/${id}/status`, { cache: "no-store" }))).finally(() => router.refresh());
+    }, 10000);
     return () => window.clearInterval(timer);
   }, [documents, router]);
 
@@ -79,6 +83,16 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
     router.refresh();
   }
 
+  async function retryIngest(document: LibraryDocument) {
+    setWorkingId(document.id);
+    setError("");
+    const response = await fetch(`/api/documents/${document.id}/ingest`, { method: "POST" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) setError(typeof result.error === "string" ? result.error : "知识库入库失败，请稍后重试。");
+    setWorkingId("");
+    router.refresh();
+  }
+
   return (
     <section className="mt-10 rounded-3xl border border-stone-200 bg-white">
       <div className="flex flex-col gap-4 border-b border-stone-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -103,7 +117,7 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-xs font-bold text-stone-600">{formatType(document.mime_type)}</div>
                   <div className="min-w-0"><p className="truncate font-medium text-stone-900">{document.original_name}</p><div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-400"><span>{formatBytes(document.size_bytes)}</span><span>·</span><span className={`rounded-full px-2 py-1 font-medium ${status.classes}`}>{status.label}</span>{document.page_count ? <><span>·</span><span>{document.page_count} 页</span></> : null}</div>{document.error_message ? <p className="mt-2 text-xs text-red-600">{document.error_message}</p> : null}</div>
                 </div>
-                <div className="flex shrink-0 gap-2 pl-15 sm:pl-0"><a href={`/api/documents/${document.id}/file`} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-500 hover:text-stone-900">查看文件</a><button disabled={document.status === "DELETING"} onClick={() => deleteDocument(document)} className="rounded-lg px-3 py-2 text-xs font-medium text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">删除</button></div>
+                <div className="flex shrink-0 flex-wrap gap-2 pl-15 sm:pl-0">{(document.status === "FAILED" || (document.status === "PROCESSING" && !document.kb_document_id)) ? <button disabled={workingId === document.id} onClick={() => retryIngest(document)} className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-50">{workingId === document.id ? "提交中…" : "重试入库"}</button> : null}<a href={`/api/documents/${document.id}/file`} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-500 hover:text-stone-900">查看文件</a><button disabled={document.status === "DELETING"} onClick={() => deleteDocument(document)} className="rounded-lg px-3 py-2 text-xs font-medium text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">删除</button></div>
               </article>
             );
           })}
