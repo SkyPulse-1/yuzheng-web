@@ -34,6 +34,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```text
 supabase/migrations/202608300001_create_libraries.sql
 supabase/migrations/202608300002_create_documents.sql
+supabase/migrations/202608300003_create_conversations.sql
 ```
 
 迁移会创建 `libraries`、`documents` 表以及私有 `documents` Storage bucket。执行后应确认两张表均启用 RLS；登录用户只能读写 `owner_id = auth.uid()` 的记录，文件路径第一段也必须是当前用户 ID。

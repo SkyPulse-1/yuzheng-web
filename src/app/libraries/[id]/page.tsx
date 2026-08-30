@@ -36,7 +36,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
         <Link href="/libraries" className="text-sm text-stone-500 transition hover:text-stone-900">← 我的知识库</Link>
         <div className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-sm font-medium text-amber-700">知识库详情</p><h1 className="mt-2 font-serif text-3xl font-semibold">{library.name}</h1><p className="mt-3 text-stone-500">{library.description || "暂无描述"}</p></div>
-          <div className="flex gap-3"><button disabled className="rounded-xl border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-400">开始提问 · 后续阶段</button></div>
+          <div className="flex gap-3"><Link href={`/assistant?libraryId=${id}`} className="rounded-xl border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:border-stone-500 hover:bg-white">开始提问</Link></div>
         </div>
         <DocumentManager libraryId={id} documents={(documents ?? []) as LibraryDocument[]} maxUploadMb={Number.isFinite(maxUploadMb) ? maxUploadMb : 50} />
       </div>
