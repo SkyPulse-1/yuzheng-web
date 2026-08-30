@@ -11,6 +11,7 @@ export type EvidenceCard = {
   segment_id?: string;
   rects?: number[];
   retrieval_score?: number | null;
+  document_id?: string;
 };
 
 type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };

@@ -1,0 +1,4 @@
+{
+  "answer": "当前只在 A 文档中找到可核验证据，B 文档缺少支持该比较维度的材料，因此无法形成完整比较。",
+  "evidence_cards": "[{\"card_id\":\"P-E1\",\"claim\":\"A 文档支持战略主动权这一观点。\",\"evidence_status\":\"SUPPORTED\",\"evidence_text\":\"机动为后续行动恢复了选择空间。\",\"document_name\":\"long_march_strategy_a.pdf\",\"page_number\":2}]"
+}

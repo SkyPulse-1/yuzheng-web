@@ -47,9 +47,12 @@ export async function POST(request: Request) {
   await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "user", content: message });
   try {
     const result = await callHiAgent({ userId: user.id, query: adaptedQuery, ownerId: user.id, libraryId, selectedDocuments: names });
-    await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: result.evidenceCards });
+    const { data: sourceDocuments } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY");
+    const documentIdsByName = new Map((sourceDocuments ?? []).map((document) => [document.original_name, document.id]));
+    const evidenceCards = result.evidenceCards.map((card) => ({ ...card, document_id: documentIdsByName.get(card.document_name) }));
+    await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: evidenceCards });
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
-    return NextResponse.json({ conversationId, mode, answer: result.answer, evidenceCards: result.evidenceCards, meta: { selectedDocumentCount: names.length } });
+    return NextResponse.json({ conversationId, mode, answer: result.answer, evidenceCards, meta: { selectedDocumentCount: names.length } });
   } catch {
     return NextResponse.json({ error: "证据分析暂时失败或超时，请重试。", conversationId }, { status: 502 });
   }

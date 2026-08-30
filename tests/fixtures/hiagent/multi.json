@@ -1,0 +1,4 @@
+{
+  "answer": "两份材料都强调战略转移，但 A 更关注军事主动权，B 更强调组织动员与社会联系。",
+  "evidence_cards": "[{\"card_id\":\"M-E1\",\"card_role\":\"DIFFERENCE\",\"dimension\":\"军事\",\"claim\":\"A 强调重新获得战略主动。\",\"evidence_status\":\"SUPPORTED\",\"evidence_text\":\"机动为后续行动恢复了选择空间。\",\"document_name\":\"long_march_strategy_a.pdf\",\"page_number\":2},{\"card_id\":\"M-E2\",\"card_role\":\"DIFFERENCE\",\"dimension\":\"组织\",\"claim\":\"B 强调沿途动员形成长期联系。\",\"evidence_status\":\"SUPPORTED\",\"evidence_text\":\"沿途传播和组织工作扩大了社会联系。\",\"document_name\":\"long_march_strategy_b.pdf\",\"page_number\":2}]"
+}

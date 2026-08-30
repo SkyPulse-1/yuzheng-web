@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
@@ -21,5 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data, error: signedUrlError } = await supabase.storage.from("documents").createSignedUrl(document.storage_path, 60);
   if (signedUrlError || !data.signedUrl) return NextResponse.json({ error: "暂时无法打开文档。" }, { status: 500 });
-  return NextResponse.redirect(data.signedUrl);
+  const requestedPage = Number(new URL(request.url).searchParams.get("page"));
+  const pageFragment = Number.isInteger(requestedPage) && requestedPage > 0 && requestedPage <= 100000 ? `#page=${requestedPage}` : "";
+  return NextResponse.redirect(`${data.signedUrl}${pageFragment}`);
 }
