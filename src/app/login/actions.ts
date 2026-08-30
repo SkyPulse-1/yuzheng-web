@@ -12,8 +12,8 @@ export async function requestMagicLink(formData: FormData) {
   const emailValue = formData.get("email");
   const email = typeof emailValue === "string" ? emailValue.trim() : "";
 
-  if (!emailPattern.test(email)) redirect("/login?error=email");
-  if (!getSupabasePublicEnv()) redirect("/login?error=config");
+  if (!emailPattern.test(email)) redirect("/login?mode=magic&error=email");
+  if (!getSupabasePublicEnv()) redirect("/login?mode=magic&error=config");
 
   const requestHeaders = await headers();
   const origin =
@@ -30,10 +30,10 @@ export async function requestMagicLink(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.code ?? "send")}`);
+    redirect(`/login?mode=magic&error=${encodeURIComponent(error.code ?? "send")}`);
   }
 
-  redirect("/login?sent=1");
+  redirect("/login?mode=magic&sent=1");
 }
 
 function readCredentials(formData: FormData) {

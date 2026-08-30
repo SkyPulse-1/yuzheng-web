@@ -8,9 +8,9 @@ import type { Library } from "@/lib/libraries";
 
 type EditorState = { mode: "create" | "edit"; library?: Library } | null;
 
-export function LibraryManager({ libraries }: { libraries: Library[] }) {
+export function LibraryManager({ libraries, documentCounts, startCreating = false }: { libraries: Library[]; documentCounts: Record<string, number>; startCreating?: boolean }) {
   const router = useRouter();
-  const [editor, setEditor] = useState<EditorState>(null);
+  const [editor, setEditor] = useState<EditorState>(startCreating ? { mode: "create" } : null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,7 +66,7 @@ export function LibraryManager({ libraries }: { libraries: Library[] }) {
           <h1 className="mt-2 font-serif text-3xl font-semibold">管理你的研究资料空间</h1>
           <p className="mt-3 text-stone-500">按课程、论文或研究主题组织文档，资料只对你可见。</p>
         </div>
-        <button onClick={() => { setError(""); setEditor({ mode: "create" }); }} className="rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">+ 新建知识库</button>
+        <button onClick={() => { setError(""); setEditor({ mode: "create" }); }} className="primary-button">+ 新建知识库</button>
       </div>
 
       {error && !editor ? <p className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
@@ -92,7 +92,7 @@ export function LibraryManager({ libraries }: { libraries: Library[] }) {
               <h2 className="mt-5 font-serif text-xl font-semibold">{library.name}</h2>
               <p className="mt-2 min-h-12 text-sm leading-6 text-stone-500">{library.description || "暂无描述"}</p>
               <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-xs text-stone-400">
-                <span>0 个文档</span>
+                <span>{documentCounts[library.id] ?? 0} 个文档</span>
                 <Link href={`/libraries/${library.id}`} className="font-medium text-stone-700 group-hover:text-amber-800">进入 →</Link>
               </div>
             </article>

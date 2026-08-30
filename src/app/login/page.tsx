@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { requestMagicLink, signInWithPassword, signUpWithPassword } from "@/app/login/actions";
+import { PasswordField } from "@/app/login/password-field";
 import { SubmitButton } from "@/app/login/submit-button";
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
 
@@ -23,7 +24,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const errorCode = typeof params.error === "string" ? params.error : "";
   const sent = params.sent === "1";
   const registered = params.registered === "1";
-  const mode = params.mode === "signup" ? "signup" : params.mode === "password" ? "password" : "magic";
+  const mode = params.mode === "signup" ? "signup" : params.mode === "magic" ? "magic" : "password";
   const configured = Boolean(getSupabasePublicEnv());
 
   return (
@@ -45,8 +46,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <Link href="/" className="text-sm text-stone-500 hover:text-stone-900">← 返回首页</Link>
               <div className="mt-12">
                 <p className="text-sm font-medium text-amber-700">欢迎使用语证</p>
-                <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight">登录你的知识空间</h2>
-                <p className="mt-3 text-sm leading-6 text-stone-500">使用邮箱和密码登录，或注册一个新账号。</p>
+                <h2 className="mt-3 font-serif text-3xl font-semibold tracking-tight">{mode === "signup" ? "创建你的知识空间" : "登录你的知识空间"}</h2>
+                <p className="mt-3 text-sm leading-6 text-stone-500">{mode === "signup" ? "注册后即可创建知识库并上传资料。" : mode === "magic" ? "我们会向你的邮箱发送一次性登录链接。" : "输入邮箱和密码，继续整理你的研究资料。"}</p>
+              </div>
+
+              <div className="mt-8 grid grid-cols-2 rounded-xl bg-stone-100 p-1" aria-label="账号入口">
+                <Link href="/login?mode=password" className={`rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${mode === "password" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>登录</Link>
+                <Link href="/login?mode=signup" className={`rounded-lg px-4 py-2.5 text-center text-sm font-medium transition ${mode === "signup" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-900"}`}>注册</Link>
               </div>
 
               {sent ? (
@@ -59,30 +65,25 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">{errorMessages[errorCode] ?? errorMessages.send}</div>
               ) : null}
 
-              {mode === "magic" ? <form action={requestMagicLink} className="mt-8 space-y-5">
+              {mode === "magic" ? <form action={requestMagicLink} className="mt-6 space-y-5">
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium">邮箱地址</span>
-                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-stone-700 focus:ring-4 focus:ring-stone-100" />
+                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="form-field" />
                 </label>
                 <SubmitButton />
               </form> : null}
 
-              {mode === "password" || mode === "signup" ? <form action={mode === "signup" ? signUpWithPassword : signInWithPassword} className="mt-8 space-y-5">
+              {mode === "password" || mode === "signup" ? <form action={mode === "signup" ? signUpWithPassword : signInWithPassword} className="mt-6 space-y-5">
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium">邮箱地址</span>
-                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-stone-700 focus:ring-4 focus:ring-stone-100" />
+                  <input type="email" name="email" autoComplete="email" required placeholder="name@example.com" className="form-field" />
                 </label>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium">密码</span>
-                  <input type="password" name="password" minLength={mode === "signup" ? 8 : 6} autoComplete={mode === "signup" ? "new-password" : "current-password"} required placeholder={mode === "signup" ? "至少 8 个字符" : "请输入密码"} className="h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-stone-700 focus:ring-4 focus:ring-stone-100" />
-                </label>
+                <PasswordField isNew={mode === "signup"} />
                 <SubmitButton label={mode === "signup" ? "创建账号" : "登录"} pendingLabel={mode === "signup" ? "正在创建…" : "正在登录…"} />
               </form> : null}
 
-              <div className="mt-6 flex flex-wrap gap-3 text-sm">
-                {mode !== "password" ? <Link href="/login?mode=password" className="rounded-lg border border-stone-300 px-3 py-2 hover:border-stone-700">邮箱密码登录</Link> : null}
-                {mode !== "signup" ? <Link href="/login?mode=signup" className="rounded-lg border border-stone-300 px-3 py-2 hover:border-stone-700">注册新账号</Link> : null}
-                {mode !== "magic" ? <Link href="/login" className="rounded-lg border border-stone-300 px-3 py-2 hover:border-stone-700">使用邮件链接</Link> : null}
+              <div className="mt-6 border-t border-stone-200 pt-5 text-center text-sm">
+                {mode === "magic" ? <Link href="/login" className="font-medium text-stone-600 hover:text-amber-800">返回密码登录</Link> : <><span className="text-stone-400">其他方式：</span><Link href="/login?mode=magic" className="font-medium text-stone-600 hover:text-amber-800">邮件登录链接</Link></>}
               </div>
 
               {!configured ? <p className="mt-5 text-xs leading-5 text-stone-500">当前为界面预览状态；连接 Supabase 项目后即可发送邮件。</p> : null}

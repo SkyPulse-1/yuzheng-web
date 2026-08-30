@@ -16,5 +16,5 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   if (!library) notFound();
   const { data: documents } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY").order("original_name");
 
-  return <main className="min-h-screen bg-stone-50 text-stone-900"><AppHeader /><AssistantWorkspace libraryId={library.id} libraryName={library.name} documents={documents ?? []} /></main>;
+  return <main className="app-page"><AppHeader /><AssistantWorkspace libraryId={library.id} libraryName={library.name} documents={documents ?? []} /></main>;
 }

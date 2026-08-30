@@ -4,15 +4,16 @@ import { signOut } from "@/app/dashboard/actions";
 
 export function AppHeader() {
   return (
-    <header className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-        <Link href="/dashboard" className="flex items-center gap-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-900 font-serif text-lg text-white">证</span>
-          <span><span className="block font-semibold tracking-[0.16em]">语证</span><span className="block text-xs text-stone-500">个人学术知识空间</span></span>
+    <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-3 rounded-xl">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-900 font-serif text-base text-white">证</span>
+          <span className="min-w-0"><span className="block font-semibold tracking-[0.16em]">语证</span><span className="hidden text-[11px] text-stone-500 sm:block">个人学术知识空间</span></span>
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-5">
-          <Link href="/libraries" className="rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900">我的知识库</Link>
-          <form action={signOut}><button className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-600 transition hover:border-stone-500 hover:text-stone-900">退出登录</button></form>
+        <nav aria-label="主导航" className="flex items-center gap-1 sm:gap-2">
+          <Link href="/dashboard" className="hidden rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 sm:inline-flex">首页</Link>
+          <Link href="/libraries" className="rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100 hover:text-stone-900">知识库</Link>
+          <form action={signOut}><button className="rounded-lg px-3 py-2 text-sm text-stone-500 transition hover:bg-stone-100 hover:text-stone-900">退出</button></form>
         </nav>
       </div>
     </header>

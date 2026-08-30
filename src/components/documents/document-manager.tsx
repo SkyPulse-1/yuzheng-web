@@ -7,9 +7,9 @@ import type { DocumentStatus, LibraryDocument } from "@/lib/documents";
 
 const STATUS_LABELS: Record<DocumentStatus, { label: string; classes: string }> = {
   UPLOADING: { label: "上传中", classes: "bg-blue-50 text-blue-700" },
-  PROCESSING: { label: "待知识库解析", classes: "bg-amber-50 text-amber-800" },
-  READY: { label: "已解析", classes: "bg-emerald-50 text-emerald-700" },
-  FAILED: { label: "失败", classes: "bg-red-50 text-red-700" },
+  PROCESSING: { label: "处理中", classes: "bg-amber-50 text-amber-800" },
+  READY: { label: "可使用", classes: "bg-emerald-50 text-emerald-700" },
+  FAILED: { label: "处理失败", classes: "bg-red-50 text-red-700" },
   DELETING: { label: "删除中", classes: "bg-stone-100 text-stone-600" },
 };
 
@@ -94,19 +94,19 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
   }
 
   return (
-    <section className="mt-10 rounded-3xl border border-stone-200 bg-white">
+    <section className="mt-6 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <div className="flex flex-col gap-4 border-b border-stone-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div><h2 className="font-serif text-xl font-semibold">文档</h2><p className="mt-1 text-sm text-stone-500">{documents.length} 个文档 · 支持 PDF / DOCX / TXT，单个不超过 {maxUploadMb}MB</p></div>
+        <div><h2 className="font-serif text-xl font-semibold">文档资料</h2><p className="mt-1 text-sm text-stone-500">支持 PDF、DOCX、TXT；单个文件不超过 {maxUploadMb}MB</p></div>
         <div>
           <input ref={inputRef} type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" multiple className="sr-only" onChange={uploadFiles} />
-          <button type="button" disabled={uploading} onClick={() => inputRef.current?.click()} className="rounded-xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-700 disabled:cursor-wait disabled:opacity-60">{uploading ? `正在上传 ${currentFile}` : "+ 上传文档"}</button>
+          <button type="button" disabled={uploading} onClick={() => inputRef.current?.click()} className="primary-button">{uploading ? `正在上传 ${currentFile}` : "+ 上传文档"}</button>
         </div>
       </div>
 
       {error ? <p className="mx-6 mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</p> : null}
 
       {documents.length === 0 ? (
-        <div className="px-6 py-16 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-stone-100 text-stone-500">页</div><p className="mt-4 font-medium">这里还没有文档</p><p className="mt-2 text-sm text-stone-500">上传课程资料或研究文献，下一阶段将送入知识库解析。</p></div>
+        <button type="button" onClick={() => inputRef.current?.click()} className="block w-full px-6 py-16 text-center transition hover:bg-amber-50/40"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 font-serif text-amber-800">页</span><span className="mt-4 block font-medium">上传第一份文档</span><span className="mt-2 block text-sm text-stone-500">选择课程资料或研究文献，上传后会自动进入处理流程。</span></button>
       ) : (
         <div className="divide-y divide-stone-100">
           {documents.map((document) => {

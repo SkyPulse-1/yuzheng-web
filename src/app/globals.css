@@ -3,6 +3,10 @@
 :root {
   --background: #f7f4ed;
   --foreground: #1c1917;
+  --surface: #ffffff;
+  --muted: #78716c;
+  --border: #e7e5e4;
+  --accent: #92400e;
 }
 
 @theme inline {
@@ -19,8 +23,50 @@ body {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(180, 83, 9, 0.22);
+  outline-offset: 3px;
+}
+
+@layer components {
+  .app-page {
+    @apply min-h-screen bg-stone-50 text-stone-900;
+  }
+
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-stone-200 bg-white shadow-sm;
+  }
+
+  .primary-button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .secondary-button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-stone-300 bg-white px-5 py-2.5 text-sm font-medium text-stone-700 transition hover:border-stone-500 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .form-field {
+    @apply min-h-12 w-full rounded-xl border border-stone-300 bg-white px-4 text-sm outline-none transition placeholder:text-stone-400 focus:border-amber-700 focus:ring-4 focus:ring-amber-100;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold tracking-[0.16em] text-amber-700;
+  }
 }
 
 ::selection {
