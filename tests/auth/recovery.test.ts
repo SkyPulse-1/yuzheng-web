@@ -30,6 +30,7 @@ describe("recovery codes", () => {
   it("rejects a tampered delivery payload", () => {
     const secret = "d".repeat(32);
     const payload = sealRecoveryDelivery("ABCDE-FGHIJ-KLMNP-QRSTU", secret);
-    expect(openRecoveryDelivery(`${payload.slice(0, -1)}x`, secret)).toBeNull();
+    const replacement = payload.slice(-1) === "x" ? "y" : "x";
+    expect(openRecoveryDelivery(`${payload.slice(0, -1)}${replacement}`, secret)).toBeNull();
   });
 });
