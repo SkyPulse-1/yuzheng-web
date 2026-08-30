@@ -25,7 +25,7 @@ function formatType(mime: string) {
   return "TXT";
 }
 
-export function DocumentManager({ libraryId, documents, maxUploadMb }: { libraryId: string; documents: LibraryDocument[]; maxUploadMb: number }) {
+export function DocumentManager({ libraryId, documents, maxUploadMb, vikingConfigured }: { libraryId: string; documents: LibraryDocument[]; maxUploadMb: number; vikingConfigured: boolean }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -103,6 +103,7 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
         </div>
       </div>
 
+      {!vikingConfigured && documents.length > 0 ? <p className="mx-6 mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">火山知识库尚未配置。原文件已安全保存在私有存储中；补齐火山配置后，点击“重试入库”即可继续处理。</p> : null}
       {error ? <p className="mx-6 mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</p> : null}
 
       {documents.length === 0 ? (
@@ -110,7 +111,7 @@ export function DocumentManager({ libraryId, documents, maxUploadMb }: { library
       ) : (
         <div className="divide-y divide-stone-100">
           {documents.map((document) => {
-            const status = STATUS_LABELS[document.status];
+            const status = document.status === "PROCESSING" && !document.kb_document_id ? { label: "待入库", classes: "bg-amber-50 text-amber-800" } : STATUS_LABELS[document.status];
             return (
               <article key={document.id} className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-4">

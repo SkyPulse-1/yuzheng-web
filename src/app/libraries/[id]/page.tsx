@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { DocumentManager } from "@/components/documents/document-manager";
 import type { LibraryDocument } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
+import { isVikingConfigured } from "@/lib/vikingdb/config";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
   const maxUploadMb = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB ?? 50);
   const libraryDocuments = (documents ?? []) as LibraryDocument[];
   const readyCount = libraryDocuments.filter((document) => document.status === "READY").length;
+  const vikingConfigured = isVikingConfigured();
 
   return (
     <main className="app-page">
@@ -45,7 +47,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
           <div className="surface-card px-5 py-4"><p className="text-xs text-stone-500">可用于问答</p><p className="mt-1 text-2xl font-semibold text-emerald-700">{readyCount}</p></div>
           <div className="surface-card px-5 py-4"><p className="text-xs text-stone-500">处理中或待处理</p><p className="mt-1 text-2xl font-semibold text-amber-700">{libraryDocuments.length - readyCount}</p></div>
         </div>
-        <DocumentManager libraryId={id} documents={libraryDocuments} maxUploadMb={Number.isFinite(maxUploadMb) ? maxUploadMb : 50} />
+        <DocumentManager libraryId={id} documents={libraryDocuments} maxUploadMb={Number.isFinite(maxUploadMb) ? maxUploadMb : 50} vikingConfigured={vikingConfigured} />
       </div>
     </main>
   );
