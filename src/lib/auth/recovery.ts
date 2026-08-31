@@ -49,12 +49,22 @@ export function sealRecoveryDelivery(code: string, secret: string) {
 
 export function openRecoveryDelivery(payload: string, secret: string) {
   try {
-    const [version, ivValue, tagValue, encryptedValue] = payload.split(".");
+    const parts = payload.split(".");
+    if (parts.length !== 4) return null;
+    const [version, ivValue, tagValue, encryptedValue] = parts;
     if (version !== "v1" || !ivValue || !tagValue || !encryptedValue) return null;
-    const decipher = createDecipheriv("aes-256-gcm", deliveryKey(secret), Buffer.from(ivValue, "base64url"));
-    decipher.setAuthTag(Buffer.from(tagValue, "base64url"));
+    const iv = Buffer.from(ivValue, "base64url");
+    const tag = Buffer.from(tagValue, "base64url");
+    const encrypted = Buffer.from(encryptedValue, "base64url");
+    if (
+      iv.toString("base64url") !== ivValue
+      || tag.toString("base64url") !== tagValue
+      || encrypted.toString("base64url") !== encryptedValue
+    ) return null;
+    const decipher = createDecipheriv("aes-256-gcm", deliveryKey(secret), iv);
+    decipher.setAuthTag(tag);
     const decrypted = Buffer.concat([
-      decipher.update(Buffer.from(encryptedValue, "base64url")),
+      decipher.update(encrypted),
       decipher.final(),
     ]);
     return decrypted.toString("utf8");
