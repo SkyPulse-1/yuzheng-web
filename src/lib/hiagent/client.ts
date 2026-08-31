@@ -14,20 +14,18 @@ export type EvidenceCard = {
   document_id?: string;
 };
 
-type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };
+export type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };
 
 function getConfig() {
   const baseUrl = process.env.HIAGENT_BASE_URL?.replace(/\/$/, "");
-  const appId = process.env.HIAGENT_APP_ID?.trim();
   const apiKey = process.env.HIAGENT_API_KEY?.trim();
   const trusted = process.env.HIAGENT_TRUSTED_FILTERS_ENABLED === "true";
-  if (!baseUrl || !appId || !apiKey || !trusted) return null;
+  if (!baseUrl || !apiKey || !trusted) return null;
   return {
     baseUrl,
-    appId,
     apiKey,
-    runPath: process.env.HIAGENT_RUN_PATH?.trim() || "/run_app_workflow",
-    queryPath: process.env.HIAGENT_QUERY_PATH?.trim() || "/query_app_workflow",
+    createConversationPath: process.env.HIAGENT_CREATE_CONVERSATION_PATH?.trim() || "/create_conversation",
+    chatPath: process.env.HIAGENT_CHAT_PATH?.trim() || "/chat_query_v2",
   };
 }
 
@@ -69,52 +67,95 @@ export function parseHiAgentOutput(value: unknown): HiAgentResult {
   return { answer, evidenceCards };
 }
 
-export async function callHiAgent(input: {
-  userId: string;
-  query: string;
-  ownerId: string;
-  libraryId: string;
-  selectedDocuments: string[];
-}): Promise<HiAgentResult> {
+function parseEventData(data: string): unknown {
+  try { return JSON.parse(data); } catch { return data; }
+}
+
+function eventName(value: Record<string, unknown>) {
+  return String(value.event ?? value.Event ?? value.event_type ?? value.EventType ?? "").toLowerCase();
+}
+
+export function parseHiAgentSse(text: string): HiAgentResult {
+  const chunks: string[] = [];
+  let structured: HiAgentResult | null = null;
+
+  for (const block of text.split(/\r?\n\r?\n/)) {
+    const declaredEvent = block
+      .split(/\r?\n/)
+      .find((line) => line.startsWith("event:"))
+      ?.slice(6)
+      .trim()
+      .toLowerCase() ?? "";
+    const data = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trimStart())
+      .join("\n");
+    if (!data || data === "[DONE]") continue;
+
+    const payload = parseEventData(data);
+    if (typeof payload === "string") {
+      chunks.push(payload);
+      continue;
+    }
+    if (!payload || typeof payload !== "object") continue;
+    const record = payload as Record<string, unknown>;
+    const parsed = parseHiAgentOutput(record);
+    if (parsed.evidenceCards.length || record.output !== undefined || record.Output !== undefined) structured = parsed;
+    if ((declaredEvent || eventName(record)) === "message" && parsed.answer) chunks.push(parsed.answer);
+  }
+
+  if (structured && (structured.answer || structured.evidenceCards.length)) return structured;
+  return { answer: chunks.join(""), evidenceCards: [] };
+}
+
+function requestHeaders(apiKey: string) {
+  return { "Content-Type": "application/json", Apikey: apiKey };
+}
+
+export async function createHiAgentConversation(input: { userId: string; inputs?: Record<string, unknown> }): Promise<string> {
   const config = getConfig();
   if (!config) throw new Error("HIAGENT_NOT_CONFIGURED");
-  const headers = { "Content-Type": "application/json", ApiKey: config.apiKey };
-  const runResponse = await fetch(`${config.baseUrl}${config.runPath}`, {
+  const response = await fetch(`${config.baseUrl}${config.createConversationPath}`, {
     method: "POST",
-    headers,
-    body: JSON.stringify({
-      AppID: config.appId,
-      UserID: input.userId,
-      NoDebug: true,
-      InputData: JSON.stringify({
-        query: input.query,
-        owner_id: input.ownerId,
-        library_id: input.libraryId,
-        selected_documents: input.selectedDocuments,
-      }),
-    }),
+    headers: requestHeaders(config.apiKey),
+    body: JSON.stringify(input.inputs ? { UserID: input.userId, Inputs: input.inputs } : { UserID: input.userId }),
     signal: AbortSignal.timeout(20000),
     cache: "no-store",
   });
-  const run = await runResponse.json().catch(() => ({})) as Record<string, unknown>;
-  const runId = run.runId ?? run.RunID ?? (run.data as Record<string, unknown> | undefined)?.runId;
-  if (!runResponse.ok || typeof runId !== "string") throw new Error("HIAGENT_RUN_FAILED");
+  if (!response.ok) throw new Error("HIAGENT_CREATE_CONVERSATION_FAILED");
+  const result = await response.json().catch(() => ({})) as Record<string, unknown>;
+  const nested = result.data && typeof result.data === "object" ? result.data as Record<string, unknown> : {};
+  const conversationId = result.AppConversationID ?? result.appConversationId ?? result.ConversationID
+    ?? nested.AppConversationID ?? nested.appConversationId ?? nested.ConversationID;
+  if (typeof conversationId !== "string" || !conversationId) throw new Error("HIAGENT_INVALID_CONVERSATION");
+  return conversationId;
+}
 
-  const deadline = Date.now() + 120000;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    const queryResponse = await fetch(`${config.baseUrl}${config.queryPath}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ RunID: runId, UserID: input.userId }),
-      signal: AbortSignal.timeout(20000),
-      cache: "no-store",
-    });
-    const result = await queryResponse.json().catch(() => ({})) as Record<string, unknown>;
-    if (!queryResponse.ok) throw new Error("HIAGENT_QUERY_FAILED");
-    const status = String(result.status ?? result.Status ?? (result.data as Record<string, unknown> | undefined)?.status ?? "").toUpperCase();
-    if (["SUCCESS", "SUCCEEDED", "COMPLETED"].includes(status)) return parseHiAgentOutput(result);
-    if (["FAILED", "ERROR", "STOPPED"].includes(status)) throw new Error("HIAGENT_WORKFLOW_FAILED");
-  }
-  throw new Error("HIAGENT_TIMEOUT");
+export async function chatWithHiAgent(input: {
+  userId: string;
+  conversationId: string;
+  query: string;
+}): Promise<HiAgentResult> {
+  const config = getConfig();
+  if (!config) throw new Error("HIAGENT_NOT_CONFIGURED");
+  const response = await fetch(`${config.baseUrl}${config.chatPath}`, {
+    method: "POST",
+    headers: requestHeaders(config.apiKey),
+    body: JSON.stringify({
+      UserID: input.userId,
+      AppConversationID: input.conversationId,
+      Query: input.query,
+    }),
+    signal: AbortSignal.timeout(120000),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("HIAGENT_CHAT_FAILED");
+  const text = await response.text();
+  const contentType = response.headers.get("content-type") ?? "";
+  const result = contentType.includes("text/event-stream") || /^data:/m.test(text)
+    ? parseHiAgentSse(text)
+    : parseHiAgentOutput(parseEventData(text));
+  if (!result.answer && !result.evidenceCards.length) throw new Error("HIAGENT_EMPTY_RESPONSE");
+  return result;
 }

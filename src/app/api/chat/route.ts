@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { callHiAgent, isHiAgentConfigured } from "@/lib/hiagent/client";
+import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured } from "@/lib/hiagent/client";
 import { createClient } from "@/lib/supabase/server";
 
 type ChatBody = { conversationId?: unknown; libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
@@ -35,18 +35,44 @@ export async function POST(request: Request) {
   if (!isHiAgentConfigured()) return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
 
   let conversationId = typeof body?.conversationId === "string" ? body.conversationId : "";
+  let hiAgentConversationId = "";
   if (conversationId) {
-    const { data: conversation } = await supabase.from("conversations").select("id").eq("id", conversationId).eq("library_id", libraryId).maybeSingle();
+    const { data: conversation } = await supabase
+      .from("conversations")
+      .select("id, hiagent_conversation_id")
+      .eq("id", conversationId)
+      .eq("owner_id", user.id)
+      .eq("library_id", libraryId)
+      .maybeSingle();
     if (!conversation) return NextResponse.json({ error: "对话不存在。" }, { status: 404 });
+    hiAgentConversationId = conversation.hiagent_conversation_id ?? "";
   } else {
-    const { data: created, error } = await supabase.from("conversations").insert({ owner_id: user.id, library_id: libraryId, title: message.slice(0, 100) }).select("id").single();
+    const { data: created, error } = await supabase
+      .from("conversations")
+      .insert({ owner_id: user.id, library_id: libraryId, title: message.slice(0, 100) })
+      .select("id, hiagent_conversation_id")
+      .single();
     if (error || !created) return NextResponse.json({ error: "无法创建对话。" }, { status: 500 });
     conversationId = created.id;
   }
 
-  await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "user", content: message });
   try {
-    const result = await callHiAgent({ userId: user.id, query: adaptedQuery, ownerId: user.id, libraryId, selectedDocuments: names });
+    if (!hiAgentConversationId) {
+      hiAgentConversationId = await createHiAgentConversation({ userId: user.id });
+      const { error: updateError } = await supabase
+        .from("conversations")
+        .update({ hiagent_conversation_id: hiAgentConversationId })
+        .eq("id", conversationId)
+        .eq("owner_id", user.id);
+      if (updateError) return NextResponse.json({ error: "无法保存对话连接，请重试。", conversationId }, { status: 500 });
+    }
+
+    const { error: messageError } = await supabase
+      .from("messages")
+      .insert({ owner_id: user.id, conversation_id: conversationId, role: "user", content: message });
+    if (messageError) return NextResponse.json({ error: "无法保存问题，请重试。", conversationId }, { status: 500 });
+
+    const result = await chatWithHiAgent({ userId: user.id, conversationId: hiAgentConversationId, query: adaptedQuery });
     const { data: sourceDocuments } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY");
     const documentIdsByName = new Map((sourceDocuments ?? []).map((document) => [document.original_name, document.id]));
     const evidenceCards = result.evidenceCards.map((card) => ({ ...card, document_id: documentIdsByName.get(card.document_name) }));
