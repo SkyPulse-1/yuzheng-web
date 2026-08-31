@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { DocumentStatus, LibraryDocument } from "@/lib/documents";
+import { type DocumentStatus, type LibraryDocument, validateDocumentFile } from "@/lib/documents";
 
 const STATUS_LABELS: Record<DocumentStatus, { label: string; classes: string }> = {
   UPLOADING: { label: "上传中", classes: "bg-blue-50 text-blue-700" },
@@ -56,6 +56,11 @@ export function DocumentManager({ libraryId, documents, maxUploadMb, vikingConfi
     const failures: string[] = [];
     for (const file of files) {
       setCurrentFile(file.name);
+      const validation = validateDocumentFile(file);
+      if (!validation.ok) {
+        failures.push(`${file.name}：${validation.error}`);
+        continue;
+      }
       const form = new FormData();
       form.set("file", file);
       const response = await fetch(`/api/libraries/${libraryId}/documents`, { method: "POST", body: form });
@@ -88,7 +93,7 @@ export function DocumentManager({ libraryId, documents, maxUploadMb, vikingConfi
     setError("");
     const response = await fetch(`/api/documents/${document.id}/ingest`, { method: "POST" });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) setError(typeof result.error === "string" ? result.error : "知识库入库失败，请稍后重试。");
+    if (!response.ok) setError(typeof result.error === "string" ? result.error : "文档处理失败，请稍后重试。");
     setWorkingId("");
     router.refresh();
   }
@@ -103,7 +108,7 @@ export function DocumentManager({ libraryId, documents, maxUploadMb, vikingConfi
         </div>
       </div>
 
-      {!vikingConfigured && documents.length > 0 ? <p className="mx-6 mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">火山知识库尚未配置。原文件已安全保存在私有存储中；补齐火山配置后，点击“重试入库”即可继续处理。</p> : null}
+      {!vikingConfigured && documents.length > 0 ? <p className="mx-6 mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">文档暂时无法处理，但原文件已经安全保存。服务准备好后，点击“重新处理”即可继续。</p> : null}
       {error ? <p className="mx-6 mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</p> : null}
 
       {documents.length === 0 ? (
@@ -111,14 +116,14 @@ export function DocumentManager({ libraryId, documents, maxUploadMb, vikingConfi
       ) : (
         <div className="divide-y divide-stone-100">
           {documents.map((document) => {
-            const status = document.status === "PROCESSING" && !document.kb_document_id ? { label: "待入库", classes: "bg-amber-50 text-amber-800" } : STATUS_LABELS[document.status];
+            const status = document.status === "PROCESSING" && !document.kb_document_id ? { label: "等待处理", classes: "bg-amber-50 text-amber-800" } : STATUS_LABELS[document.status];
             return (
               <article key={document.id} className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-xs font-bold text-stone-600">{formatType(document.mime_type)}</div>
                   <div className="min-w-0"><p className="truncate font-medium text-stone-900">{document.original_name}</p><div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-400"><span>{formatBytes(document.size_bytes)}</span><span>·</span><span className={`rounded-full px-2 py-1 font-medium ${status.classes}`}>{status.label}</span>{document.page_count ? <><span>·</span><span>{document.page_count} 页</span></> : null}</div>{document.error_message ? <p className="mt-2 text-xs text-red-600">{document.error_message}</p> : null}</div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2 pl-15 sm:pl-0">{(document.status === "FAILED" || (document.status === "PROCESSING" && !document.kb_document_id)) ? <button disabled={workingId === document.id} onClick={() => retryIngest(document)} className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-50">{workingId === document.id ? "提交中…" : "重试入库"}</button> : null}<a href={`/api/documents/${document.id}/file`} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-500 hover:text-stone-900">查看文件</a><button disabled={document.status === "DELETING"} onClick={() => deleteDocument(document)} className="rounded-lg px-3 py-2 text-xs font-medium text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">删除</button></div>
+                <div className="flex shrink-0 flex-wrap gap-2 pl-15 sm:pl-0">{(document.status === "FAILED" || (document.status === "PROCESSING" && !document.kb_document_id)) ? <button disabled={workingId === document.id} onClick={() => retryIngest(document)} className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-50">{workingId === document.id ? "正在提交…" : "重新处理"}</button> : null}<a href={`/api/documents/${document.id}/file`} target="_blank" rel="noreferrer" className="rounded-lg border border-stone-300 px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-500 hover:text-stone-900">查看文件</a><button disabled={document.status === "DELETING"} onClick={() => deleteDocument(document)} className="rounded-lg px-3 py-2 text-xs font-medium text-stone-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50">删除</button></div>
               </article>
             );
           })}

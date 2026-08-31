@@ -10,7 +10,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
-  if (!isVikingConfigured()) return NextResponse.json({ error: "火山知识库尚未配置，文件已安全保存在私有存储中。" }, { status: 503 });
+  if (!isVikingConfigured()) return NextResponse.json({ error: "文档检索服务尚未配置，文件已安全保存；完成配置后可以重试。" }, { status: 503 });
 
   const { id } = await context.params;
   const { data: document, error } = await supabase
@@ -42,7 +42,7 @@ export async function POST(_request: Request, context: RouteContext) {
       .single();
     return NextResponse.json({ document: updated });
   } catch {
-    await supabase.from("documents").update({ status: "FAILED", error_message: "知识库入库失败，可稍后重试。" }).eq("id", id);
-    return NextResponse.json({ error: "知识库入库失败，请检查配置后重试。" }, { status: 502 });
+    await supabase.from("documents").update({ status: "FAILED", error_message: "文档处理失败，可稍后重试。" }).eq("id", id);
+    return NextResponse.json({ error: "文档处理失败，请检查服务设置后重试。" }, { status: 502 });
   }
 }

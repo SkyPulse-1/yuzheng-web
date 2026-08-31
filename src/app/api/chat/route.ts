@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const names = selectedDocuments.map((document) => document.original_name);
   const mode = names.length === 0 ? "GENERAL" : names.length === 1 ? "SINGLE" : "MULTI";
   const adaptedQuery = mode === "GENERAL" ? message : mode === "SINGLE" ? `仅根据 ${names[0]}，${message}` : `比较 ${names.join("、")}，${message}`;
-  if (!isHiAgentConfigured()) return NextResponse.json({ error: "HiAgent 安全过滤尚未完成配置，暂不允许发起问答。" }, { status: 503 });
+  if (!isHiAgentConfigured()) return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
 
   let conversationId = typeof body?.conversationId === "string" ? body.conversationId : "";
   if (conversationId) {

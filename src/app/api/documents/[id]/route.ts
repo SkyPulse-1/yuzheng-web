@@ -24,13 +24,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
   await supabase.from("documents").update({ status: "DELETING", error_message: null }).eq("id", id);
   if (document.kb_document_id) {
     if (!isVikingConfigured()) {
-      await supabase.from("documents").update({ status: "FAILED", error_message: "知识库未配置，暂不能安全删除。" }).eq("id", id);
-      return NextResponse.json({ error: "知识库未配置，无法确认向量文档已删除。" }, { status: 503 });
+      await supabase.from("documents").update({ status: "FAILED", error_message: "当前无法完成完整删除，请稍后重试。" }).eq("id", id);
+      return NextResponse.json({ error: "当前无法完成完整删除，请稍后重试。" }, { status: 503 });
     }
     try {
       await deleteVikingDocument(document.kb_document_id);
     } catch {
-      await supabase.from("documents").update({ status: "FAILED", error_message: "知识库文档删除失败，请重试。" }).eq("id", id);
+      await supabase.from("documents").update({ status: "FAILED", error_message: "文档关联内容删除失败，请重试。" }).eq("id", id);
       return NextResponse.json({ error: "知识库文档删除失败，请稍后重试。" }, { status: 502 });
     }
   }

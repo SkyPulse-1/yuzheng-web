@@ -84,8 +84,8 @@ export async function POST(request: Request, context: RouteContext) {
         signedUrl: signed.signedUrl,
       });
     } catch {
-      await supabase.from("documents").update({ status: "FAILED", error_message: "知识库入库失败，可稍后重试。" }).eq("id", documentId);
-      return NextResponse.json({ error: "文件已保存，但知识库入库失败，可稍后重试。" }, { status: 502 });
+      await supabase.from("documents").update({ status: "FAILED", error_message: "文档处理失败，可稍后重试。" }).eq("id", documentId);
+      return NextResponse.json({ error: "文件已保存，但暂时无法处理；可稍后点击“重新处理”。" }, { status: 502 });
     }
   }
 
