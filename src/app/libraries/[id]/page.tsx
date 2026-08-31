@@ -3,9 +3,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
 import { DocumentManager } from "@/components/documents/document-manager";
-import { DEFAULT_MAX_UPLOAD_MB, type LibraryDocument } from "@/lib/documents";
+import { type LibraryDocument } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
-import { isVikingConfigured } from "@/lib/vikingdb/config";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +27,8 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
     .select("id, owner_id, library_id, original_name, mime_type, size_bytes, storage_path, kb_document_id, status, error_message, page_count, created_at, updated_at")
     .eq("library_id", id)
     .order("updated_at", { ascending: false });
-  const maxUploadMb = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB ?? DEFAULT_MAX_UPLOAD_MB);
   const libraryDocuments = (documents ?? []) as LibraryDocument[];
   const readyCount = libraryDocuments.filter((document) => document.status === "READY").length;
-  const vikingConfigured = isVikingConfigured();
 
   return (
     <main className="app-page">
@@ -47,7 +44,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
           <div className="surface-card px-5 py-4"><p className="text-xs text-stone-500">可用于问答</p><p className="mt-1 text-2xl font-semibold text-emerald-700">{readyCount}</p></div>
           <div className="surface-card px-5 py-4"><p className="text-xs text-stone-500">处理中或待处理</p><p className="mt-1 text-2xl font-semibold text-amber-700">{libraryDocuments.length - readyCount}</p></div>
         </div>
-        <DocumentManager libraryId={id} documents={libraryDocuments} maxUploadMb={Number.isFinite(maxUploadMb) ? maxUploadMb : DEFAULT_MAX_UPLOAD_MB} vikingConfigured={vikingConfigured} />
+        <DocumentManager libraryId={id} documents={libraryDocuments} />
       </div>
     </main>
   );
