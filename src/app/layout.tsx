@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "语证｜可溯源学术证据智能体",
+  title: "语证｜可溯源学术证据工具",
   description: "在个人知识空间中获得有证据、可回溯的学术回答。",
 };
 

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const names = selectedDocuments.map((document) => document.original_name);
   const mode = names.length === 0 ? "GENERAL" : names.length === 1 ? "SINGLE" : "MULTI";
   const adaptedQuery = mode === "GENERAL" ? message : mode === "SINGLE" ? `仅根据 ${names[0]}，${message}` : `比较 ${names.join("、")}，${message}`;
-  if (!isHiAgentConfigured()) return NextResponse.json({ error: "HiAgent 安全过滤尚未完成配置，暂不允许发起问答。" }, { status: 503 });
+  if (!isHiAgentConfigured()) return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
 
   let conversationId = typeof body?.conversationId === "string" ? body.conversationId : "";
   if (conversationId) {
@@ -50,9 +50,14 @@ export async function POST(request: Request) {
     const { data: sourceDocuments } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY");
     const documentIdsByName = new Map((sourceDocuments ?? []).map((document) => [document.original_name, document.id]));
     const evidenceCards = result.evidenceCards.map((card) => ({ ...card, document_id: documentIdsByName.get(card.document_name) }));
-    await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: evidenceCards });
+    const { data: savedMessage, error: saveError } = await supabase
+      .from("messages")
+      .insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: evidenceCards })
+      .select("id")
+      .single();
+    if (saveError || !savedMessage) return NextResponse.json({ error: "回答已完成，但保存失败，请重试。", conversationId }, { status: 500 });
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
-    return NextResponse.json({ conversationId, mode, answer: result.answer, evidenceCards, meta: { selectedDocumentCount: names.length } });
+    return NextResponse.json({ conversationId, evidenceMessageId: savedMessage.id, mode, answer: result.answer, evidenceCards, meta: { selectedDocumentCount: names.length } });
   } catch {
     return NextResponse.json({ error: "证据分析暂时失败或超时，请重试。", conversationId }, { status: 502 });
   }
