@@ -23,9 +23,11 @@ const ALLOWED_TYPES: Record<string, { mime: string; extension: string }> = {
   txt: { mime: "text/plain", extension: "txt" },
 };
 
+export const DEFAULT_MAX_UPLOAD_MB = 500;
+
 export function getUploadLimitBytes() {
-  const configured = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB ?? 50);
-  const megabytes = Number.isFinite(configured) && configured > 0 ? configured : 50;
+  const configured = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB ?? DEFAULT_MAX_UPLOAD_MB);
+  const megabytes = Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_MAX_UPLOAD_MB;
   return megabytes * 1024 * 1024;
 }
 
@@ -39,7 +41,7 @@ export function validateDocumentFile(file: File):
   }
   if (!file.size) return { ok: false, error: "不能上传空文件。" };
   if (file.size > getUploadLimitBytes()) {
-    return { ok: false, error: `单个文件不能超过 ${Math.round(getUploadLimitBytes() / 1024 / 1024)}MB。` };
+    return { ok: false, error: `单个文件不能超过 ${Math.round(getUploadLimitBytes() / 1024 / 1024)}MB，请压缩或拆分后重试。` };
   }
   if (file.name.length > 255) return { ok: false, error: "文件名不能超过 255 个字符。" };
   return { ok: true, extension: allowed.extension };
