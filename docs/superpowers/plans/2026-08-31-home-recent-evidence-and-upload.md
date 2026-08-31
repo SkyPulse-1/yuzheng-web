@@ -306,3 +306,32 @@ Start `npm run dev`. Check logged-out homepage sample, logged-in empty-history s
 Commit: `git commit -m "fix: simplify user-facing guidance"`.
 
 Review the isolated branch diff, merge it to `main` without deleting unrelated files, push the project branch, apply both new Supabase migrations to the configured project, restart the local development server, and repeat the homepage/upload smoke test.
+
+---
+
+### Task 6: 区分产品首页、工作台与知识库
+
+**Files:**
+- Create: `src/lib/navigation.ts`
+- Create: `src/components/app-navigation.tsx`
+- Modify: `src/components/app-header.tsx`
+- Create: `tests/navigation/navigation.test.ts`
+
+**Interfaces:**
+- Produces: `getNavigationSection(pathname): "dashboard" | "libraries" | null`；`<AppNavigation />`。
+
+- [ ] **Step 1: Write route-mapping tests**
+
+验证 `/dashboard` 激活工作台，`/libraries`、`/libraries/<id>` 和 `/assistant` 激活知识库，`/` 不激活登录后导航。
+
+- [ ] **Step 2: Implement distinct navigation**
+
+品牌链接改为 `/`。客户端导航读取 `usePathname()`，显示“工作台”和“知识库”，当前项使用深色底和白字，未选中项保留轻量悬停状态。
+
+- [ ] **Step 3: Verify and commit**
+
+Run: `npm test && npm run lint && npm run build`.
+
+Expected: all commands PASS；桌面和手机页面均能回到产品首页，工作台与知识库选中状态正确。
+
+Commit: `git commit -m "fix: clarify primary navigation"`.
