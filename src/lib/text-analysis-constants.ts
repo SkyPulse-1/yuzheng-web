@@ -1,1 +1,1 @@
-export const PASTED_TEXT_LIMIT = 8000;
+export { PASTED_TEXT_LIMIT } from "./text-sources";

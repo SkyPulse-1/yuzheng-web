@@ -1,5 +1,7 @@
 export const DOCUMENT_STATUSES = ["UPLOADING", "STORED", "PROCESSING", "READY", "FAILED", "DELETING"] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+export type DocumentSourceKind = "FILE" | "TEXT";
+export type DocumentAnalysisStatus = "NOT_STARTED" | "PROCESSING" | "READY" | "PARTIAL" | "FAILED";
 
 export type LibraryDocument = {
   id: string;
@@ -8,13 +10,20 @@ export type LibraryDocument = {
   original_name: string;
   mime_type: string;
   size_bytes: number;
-  storage_path: string;
+  storage_path: string | null;
   kb_document_id: string | null;
   status: DocumentStatus;
   error_message: string | null;
   page_count: number | null;
   created_at: string;
   updated_at: string;
+  source_kind: DocumentSourceKind;
+  text_content: string | null;
+  analysis_status: DocumentAnalysisStatus;
+  analysis_result_json: unknown;
+  analysis_started_at: string | null;
+  deleted_at: string | null;
+  purge_after: string | null;
 };
 
 export const DOCUMENT_UPLOAD_LIMITS_MB = {
