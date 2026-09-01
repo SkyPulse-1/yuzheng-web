@@ -124,7 +124,7 @@ export async function createHiAgentConversation(input: { userId: string; inputs?
     method: "POST",
     headers: requestHeaders(config.apiKey),
     body: JSON.stringify(input.inputs ? { UserID: input.userId, Inputs: input.inputs } : { UserID: input.userId }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(60000),
     cache: "no-store",
   });
   if (!response.ok) throw new Error("HIAGENT_CREATE_CONVERSATION_FAILED");

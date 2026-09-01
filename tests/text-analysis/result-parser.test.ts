@@ -38,6 +38,11 @@ describe("text analysis result parser", () => {
     expect(parseTextAnalysisResult("1. 内容摘要\n这是一段自由文本", source)).toEqual(createEmptyAnalysisResult());
   });
 
+  it("extracts one JSON object when the upstream wraps it in a short explanation", () => {
+    const wrapped = `分析结果如下：\n{\"content_summary\":[{\"text\":\"强调回到原文。\",\"sources\":[{\"quote\":\"证据必须能够回到原文\"}]}],\"key_points\":[],\"source_evidence\":[],\"uncertainties\":[]}\n以上内容仅基于原文。`;
+    expect(parseTextAnalysisResult(wrapped, source).content_summary).toHaveLength(1);
+  });
+
   it("drops malformed items and normal conclusions without a source", () => {
     const result = parseTextAnalysisResult({
       content_summary: [{ text: "没有证据", sources: [] }, null],

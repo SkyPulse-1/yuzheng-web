@@ -37,6 +37,29 @@ function unwrapJson(value: string) {
   try {
     return JSON.parse(candidate) as unknown;
   } catch {
+    const start = candidate.indexOf("{");
+    if (start < 0) return null;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < candidate.length; index += 1) {
+      const character = candidate[index];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === '"') inString = false;
+        continue;
+      }
+      if (character === '"') inString = true;
+      else if (character === "{") depth += 1;
+      else if (character === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          try { return JSON.parse(candidate.slice(start, index + 1)) as unknown; }
+          catch { return null; }
+        }
+      }
+    }
     return null;
   }
 }
