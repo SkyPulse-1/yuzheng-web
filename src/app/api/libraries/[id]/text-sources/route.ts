@@ -34,7 +34,7 @@ export async function POST(request: Request, context: RouteContext) {
       storage_path: null,
       source_kind: "TEXT",
       text_content: content,
-      status: "STORED",
+      status: "READY",
       analysis_status: "NOT_STARTED",
       error_message: null,
     })

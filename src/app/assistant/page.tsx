@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { AssistantWorkspace } from "@/components/assistant/assistant-workspace";
 import type { AssistantSource } from "@/components/assistant/source-shelf";
 import { buildQuestionCards, QUESTION_PAGE_SIZE, type QuestionConversationRow, type QuestionMessageRow } from "@/lib/questions";
+import { isAssistantSourceAvailable } from "@/lib/assistant-sources";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,10 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   if (!libraryId) redirect("/libraries");
   const { data: library } = await supabase.from("libraries").select("id, name").eq("id", libraryId).maybeSingle();
   if (!library) notFound();
-  const { data: documents } = await supabase.from("documents").select("id, original_name, source_kind").eq("library_id", libraryId).eq("status", "READY").is("deleted_at", null).order("original_name");
-  const sources = (documents ?? []).map((document) => ({ id: document.id, title: document.original_name, kind: document.source_kind === "TEXT" ? "TEXT" : "FILE" })) as AssistantSource[];
+  const { data: documents } = await supabase.from("documents").select("id, original_name, source_kind, status").eq("library_id", libraryId).is("deleted_at", null).order("original_name");
+  const sources = (documents ?? [])
+    .filter(isAssistantSourceAvailable)
+    .map((document) => ({ id: document.id, title: document.original_name, kind: document.source_kind === "TEXT" ? "TEXT" : "FILE" })) as AssistantSource[];
 
   const { data: conversationRows } = await supabase.from("conversations").select("id, title, status, selected_document_ids, source_scope_count, source_warning, last_error, created_at, updated_at").eq("library_id", libraryId).is("deleted_at", null).order("updated_at", { ascending: false }).limit(QUESTION_PAGE_SIZE + 1);
   const hasMore = (conversationRows?.length ?? 0) > QUESTION_PAGE_SIZE;

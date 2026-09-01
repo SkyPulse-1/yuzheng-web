@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { DocumentManager } from "@/components/documents/document-manager";
 import { PastedTextAnalysis } from "@/components/documents/pasted-text-analysis";
 import { type LibraryDocument } from "@/lib/documents";
+import { isAssistantSourceAvailable } from "@/lib/assistant-sources";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
   const libraryDocuments = (documents ?? []) as LibraryDocument[];
   const fileDocuments = libraryDocuments.filter((document) => document.source_kind !== "TEXT");
   const textSources = libraryDocuments.filter((document) => document.source_kind === "TEXT");
-  const readyCount = libraryDocuments.filter((document) => document.status === "READY").length;
+  const readyCount = libraryDocuments.filter(isAssistantSourceAvailable).length;
 
   return (
     <main className="app-page">
