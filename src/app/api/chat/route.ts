@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
+import { filterAssistantSources } from "@/lib/assistant-sources";
 import { createClient } from "@/lib/supabase/server";
 
 type ChatBody = { libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
@@ -24,26 +25,24 @@ export async function POST(request: Request) {
   const { data: library } = await supabase.from("libraries").select("id, name").eq("id", libraryId).maybeSingle();
   if (!library) return NextResponse.json({ error: "知识库不存在。" }, { status: 404 });
 
-  let selectedDocuments: { id: string; original_name: string; source_kind: "FILE" | "TEXT"; text_content: string | null }[] = [];
+  let selectedDocuments: { id: string; original_name: string; source_kind: "FILE" | "TEXT"; text_content: string | null; status: string }[] = [];
   if (selectedIds.length) {
     const { data } = await supabase
       .from("documents")
-      .select("id, original_name, source_kind, text_content")
+      .select("id, original_name, source_kind, text_content, status")
       .eq("library_id", libraryId)
-      .eq("status", "READY")
       .is("deleted_at", null)
       .in("id", selectedIds);
-    selectedDocuments = (data ?? []) as typeof selectedDocuments;
+    selectedDocuments = filterAssistantSources((data ?? []) as typeof selectedDocuments);
     if (selectedDocuments.length !== new Set(selectedIds).size) return NextResponse.json({ error: "所选文档不存在、尚未解析或不属于当前知识库。" }, { status: 400 });
   } else {
     const { data } = await supabase
       .from("documents")
-      .select("id, original_name, source_kind, text_content")
+      .select("id, original_name, source_kind, text_content, status")
       .eq("library_id", libraryId)
-      .eq("status", "READY")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
-    selectedDocuments = (data ?? []) as typeof selectedDocuments;
+    selectedDocuments = filterAssistantSources((data ?? []) as typeof selectedDocuments);
   }
 
   if (!selectedDocuments.length) return NextResponse.json({ error: "当前知识库还没有可分析的资料。" }, { status: 400 });
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
       title: message.slice(0, 100),
       status: "PROCESSING",
       selected_document_ids: selectedIds,
-      source_scope_count: selectedIds.length,
+      source_scope_count: selectedDocuments.length,
       last_error: null,
     })
     .select("id")
@@ -91,6 +90,19 @@ export async function POST(request: Request) {
   if (messageError) {
     await supabase.from("conversations").update({ status: "FAILED", last_error: "问题保存失败，请重试。" }).eq("id", conversationId);
     return NextResponse.json({ error: "无法保存问题，请重试。", conversationId }, { status: 500 });
+  }
+
+  const textDocumentIds = textDocuments.map((document) => document.id);
+  if (textDocumentIds.length) {
+    const { error: lockError } = await supabase
+      .from("documents")
+      .update({ analysis_started_at: new Date().toISOString() })
+      .in("id", textDocumentIds)
+      .is("analysis_started_at", null);
+    if (lockError) {
+      await supabase.from("conversations").update({ status: "FAILED", last_error: "文字资料暂时无法锁定，请重试。" }).eq("id", conversationId);
+      return NextResponse.json({ error: "文字资料暂时无法锁定，请重试。", conversationId }, { status: 500 });
+    }
   }
 
   try {
@@ -124,7 +136,7 @@ export async function POST(request: Request) {
         evidenceCards,
         evidenceCount: evidenceCards.length,
         selectedDocumentIds: selectedIds,
-        sourceCount: selectedIds.length,
+        sourceCount: selectedDocuments.length,
         sourceWarning: null,
         error: null,
         createdAt: updatedAt,
