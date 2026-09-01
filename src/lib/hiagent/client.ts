@@ -105,7 +105,8 @@ export function parseHiAgentSse(text: string): HiAgentResult {
     const record = payload as Record<string, unknown>;
     const parsed = parseHiAgentOutput(record);
     if (parsed.evidenceCards.length || record.output !== undefined || record.Output !== undefined) structured = parsed;
-    if ((declaredEvent || eventName(record)) === "message" && parsed.answer) chunks.push(parsed.answer);
+    const event = declaredEvent || eventName(record);
+    if (["message", "text"].includes(event) && parsed.answer) chunks.push(parsed.answer);
   }
 
   if (structured && (structured.answer || structured.evidenceCards.length)) return structured;

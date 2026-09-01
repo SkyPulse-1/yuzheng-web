@@ -95,6 +95,19 @@ describe("HiAgent conversational client", () => {
     expect(result).toEqual({ answer: "嵌套回答", evidenceCards: [] });
   });
 
+  it("collects answer chunks from the school's text events", () => {
+    const result = parseHiAgentSse([
+      "event: text",
+      'data: {"event":"message","answer":"连接"}',
+      "",
+      "event: text",
+      'data: {"event":"message","answer":"成功"}',
+      "",
+    ].join("\n"));
+
+    expect(result).toEqual({ answer: "连接成功", evidenceCards: [] });
+  });
+
   it("returns a generic failure that never contains the secret", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("server-only-test-key", { status: 500 })));
     await expect(createHiAgentConversation({ userId: "user-1" })).rejects.not.toThrow("server-only-test-key");
