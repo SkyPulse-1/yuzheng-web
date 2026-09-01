@@ -13,11 +13,11 @@
 - Source pixels: 1487 × 1058
 - Desktop implementation pixels: 1440 × 1024
 - Density normalization: source visual was normalized to 1440 × 1024 and placed beside the 1440 × 1024 implementation capture.
-- State: logged-in home route with no recent evidence rows, therefore the approved long-march example is visible.
+- Current state: logged-in home route with no completed analysis record. The research desk shows a real empty state and a working `/libraries` entry; no demonstration evidence is rendered.
 
 ## Full-view comparison
 
-The side-by-side pass confirms the intended information hierarchy: compact wordmark navigation, left editorial headline, one primary and one secondary action, right-side layered research desk, front evidence card, and one shared three-column evidence-principles strip. The implementation is slightly more compact than the concept image so it remains stable with live Chinese copy and responsive browser chrome, but it preserves the same major-region proportions and reading order.
+The side-by-side pass confirms the intended information hierarchy: compact wordmark navigation, left editorial headline, one primary and one secondary action, right-side layered research desk, and one shared three-column evidence-principles strip. The research desk can hold either a validated evidence card or a truthful empty state without changing the major-region proportions and reading order.
 
 ## Focused evidence
 
@@ -37,11 +37,23 @@ Focused region checks were completed on the right research desk and the mobile l
 
 - “进入工作区” resolves to `/dashboard` for the authenticated state.
 - “了解证据原则” updates the route to `/#principles` and reveals the principles region.
-- Empty recent-evidence state renders the long-march sample.
-- Multi-card switching, source-link formation and reduced-motion behavior are covered by `tests/components/recent-evidence-carousel.test.tsx`.
+- Empty recent-research state renders no sample claim, source, page number or inactive “查看原文” label; its “进入知识库” link was opened successfully in the in-app browser.
+- Up to three unique completed-analysis workspaces are ordered by `conversations.updated_at` and switch every 20 seconds. Manual switching, hover pause and reduced-motion behavior are covered by `tests/components/recent-evidence-carousel.test.tsx`.
+- Workspace names and question titles resolve to their matching `/assistant?libraryId=...` route. “查看原文” is rendered only after the document id, workspace ownership and non-deleted state match.
+- Stored files still open through a 60-second Supabase signed URL. Pasted text opens through the same authenticated route as UTF-8, private, no-store, read-only text.
+- Duplicate source names are not guessed: ambiguous HiAgent names receive no `document_id` and therefore no source link.
 - Desktop viewport has no clipped persistent controls.
 - Mobile document width is 375px inside a 390px viewport, with `scrollWidth = 375`; no horizontal overflow.
 - Browser console warning/error check returned no entries.
+
+## 2026-09-01 reliability regression pass
+
+- `npm test`: 20 files, 76 tests passed.
+- `npm run lint`: passed without warnings or errors.
+- `npx tsc --noEmit`: passed.
+- `npm run build`: passed; `/`, `/assistant` and `/api/documents/[id]/file` remain dynamic routes.
+- `DESIGN.md` validation: 0 errors, 0 warnings.
+- Local authenticated homepage at port 3100 rendered the new truthful empty state and the navigation link completed successfully.
 
 ## Comparison history
 
