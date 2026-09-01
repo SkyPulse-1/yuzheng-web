@@ -49,7 +49,10 @@ Expected: 分支为 `feat/hiagent-supported-basic-product`，除本计划文档�
 Run:
 
 ```powershell
-rg -L "auth\.getUser\(" src/app/api -g "route.ts"
+$unprotectedRoutes = Get-ChildItem -Path 'src/app/api' -Recurse -Filter 'route.ts' | Where-Object {
+    -not (Select-String -LiteralPath $_.FullName -Pattern 'auth\.getUser\(' -Quiet)
+}
+$unprotectedRoutes.FullName
 ```
 
 Expected: 不输出业务 API 路由；若有输出，停止公网分享并检查该路由。
