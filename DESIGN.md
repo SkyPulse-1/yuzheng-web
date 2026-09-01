@@ -1,7 +1,7 @@
 ---
 version: alpha
-name: Yuzheng Academic Reading Room
-description: A modern academic archive design system for traceable evidence workflows.
+name: Yuzheng Digital Research Desk
+description: A premium academic evidence design system that combines editorial clarity with restrained digital depth.
 colors:
   primary: "#202B5B"
   on-primary: "#FFFFFF"
@@ -28,7 +28,7 @@ colors:
 typography:
   display-xl:
     fontFamily: Noto Serif SC, Songti SC, SimSun, serif
-    fontSize: "3rem"
+    fontSize: "4.5rem"
     fontWeight: 700
     lineHeight: 1.16
     letterSpacing: -0.02em
@@ -120,6 +120,25 @@ components:
     typography: "{typography.body-sm}"
     rounded: "{rounded.pill}"
     padding: "6px 10px"
+  home-primary-action:
+    backgroundColor: "{colors.on-background}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.title-sm}"
+    rounded: "{rounded.md}"
+    padding: "14px 24px"
+    height: "52px"
+  research-desk:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.xl}"
+    padding: "28px"
+  research-evidence-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body-md}"
+    rounded: "{rounded.xl}"
+    padding: "28px"
   analysis-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
@@ -143,7 +162,7 @@ components:
 
 ## Overview
 
-语证采用‘现代学术阅览室’语言：纸张的温度、档案的秩序和数字工具的轻盈。界面首先服务于阅读、核验和回到来源，不以技术能力或装饰性面板填满页面。
+语证采用“数字研究台”语言：保留纸张的温度、档案的秩序与出版物的可信感，再加入克制的玻璃层次、柔光和证据路径。界面首先服务于阅读、核验和回到来源，不以技术能力或装饰性面板填满页面。
 
 ## Colors
 
@@ -151,15 +170,15 @@ components:
 
 ## Typography
 
-中文标题使用宋体风格营造学术出版感，正文和控件使用中性无衬线体。长文单行建议不超过 65 个汉字视觉宽度；正文保持 14–16px，行高不低于 1.55。
+中文标题使用宋体风格营造学术出版感，正文和控件使用中性无衬线体。首页主标题可在桌面端达到 72px，但必须保持短句、明确换行和足够留白；长文单行建议不超过 65 个汉字视觉宽度，正文保持 14–16px，行高不低于 1.55。
 
 ## Layout
 
-桌面端优先使用完整横向空间。证据问答采用约 280–320px 左侧资料架与弹性右侧工作区，右侧底部固定输入栏；移动端改为资料选择抽屉和单列卡片。页面以 8px 基准网格组织，主要区块间距 24–32px。
+桌面端优先使用完整横向空间。首页采用约 42% 文案区与 58% 数字研究台的非对称布局，首屏只突出“进入工作区”一个主要动作和“了解证据原则”一个辅助动作；原则区使用同一平面上的分栏和细分隔线，不使用三张独立卡片。证据问答采用约 280–320px 左侧资料架与弹性右侧工作区，右侧底部固定输入栏；移动端改为资料选择抽屉和单列卡片。页面以 8px 基准网格组织，主要区块间距 24–32px。
 
 ## Elevation & Depth
 
-默认依赖间距、分组和细分隔线。玻璃效果仅用于导航活动项、被选中的资料、悬停卡片、全屏详情和底部输入栏；模糊与透明度必须轻微。卡片默认浅影，悬停最多放大至 1.015–1.02，并伴随靛蓝轮廓和柔和跟随光泽。
+默认依赖间距、分组和细分隔线。首页数字研究台允许使用多层半透明纸张与证据卡，但必须保持明显的前后关系，不能形成卡片嵌套噪声。玻璃效果仅用于研究台、导航活动项、被选中的资料、悬停卡片、全屏详情和底部输入栏；模糊与透明度必须轻微。卡片默认浅影，悬停最多放大至 1.015–1.02，并伴随靛蓝轮廓和柔和跟随光泽。鼠标光泽只响应局部位置，不追踪光标跨越整个页面。
 
 ## Shapes
 
@@ -167,7 +186,7 @@ components:
 
 ## Components
 
-资料行必须显示类型、标题和处理状态，并支持清晰多选。问题卡展示分析需求、回答预览、证据数量、来源数量和时间；处理中卡片保留位置并使用克制边缘流光。四部分分析始终显示固定标题，缺失部分使用明确空结果文案。
+首页研究台展示最近打开的证据卡：标题、可核验状态、原文证据、来源文件、页码与查看原文入口缺一不可。真实用户数据最多轮播三张，每五秒柔和切换；没有数据时使用长征示例。资料行必须显示类型、标题和处理状态，并支持清晰多选。问题卡展示分析需求、回答预览、证据数量、来源数量和时间；处理中卡片保留位置并使用克制边缘流光。四部分分析始终显示固定标题，缺失部分使用明确空结果文案。
 
 ## Do's and Don'ts
 
