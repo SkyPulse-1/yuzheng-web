@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
 import { filterAssistantSources } from "@/lib/assistant-sources";
+import { attachUniqueDocumentIds } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
 
 type ChatBody = { libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
@@ -109,8 +110,7 @@ export async function POST(request: Request) {
     const hiAgentConversationId = await createHiAgentConversation({ userId: user.id });
     await supabase.from("conversations").update({ hiagent_conversation_id: hiAgentConversationId }).eq("id", conversationId);
     const result = await chatWithHiAgent({ userId: user.id, conversationId: hiAgentConversationId, query: adaptedQuery });
-    const documentIdsByName = new Map(selectedDocuments.map((document) => [document.original_name, document.id]));
-    const evidenceCards = result.evidenceCards.map((card) => ({ ...card, document_id: documentIdsByName.get(card.document_name) }));
+    const evidenceCards = attachUniqueDocumentIds(result.evidenceCards, selectedDocuments);
     const { data: savedMessage, error: saveError } = await supabase
       .from("messages")
       .insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: evidenceCards })
