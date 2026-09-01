@@ -8,6 +8,7 @@ import { getNavigationSection, type NavigationSection } from "@/lib/navigation";
 const ITEMS: { href: string; label: string; section: NavigationSection }[] = [
   { href: "/dashboard", label: "工作台", section: "dashboard" },
   { href: "/libraries", label: "知识库", section: "libraries" },
+  { href: "/trash", label: "回收站", section: "trash" },
 ];
 
 export function AppNavigation() {
