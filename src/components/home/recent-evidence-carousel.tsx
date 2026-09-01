@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import Image from "next/image";
 
 import type { EvidenceCard } from "@/lib/hiagent/client";
 
@@ -74,12 +75,15 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
         if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
       }}
     >
-      <div className="research-paper research-paper-back" aria-hidden="true">
-        <span>中国革命战争的战略问题</span>
-      </div>
-      <div className="research-paper research-paper-middle" aria-hidden="true">
-        <span>红军长征史料选编</span>
-      </div>
+      <Image
+        src="/assets/research-document-backdrop-alpha.png"
+        alt=""
+        width={1536}
+        height={1024}
+        priority
+        aria-hidden="true"
+        className="research-document-backdrop"
+      />
 
       <section className="research-desk" aria-label="最近研究证据">
         <div className="research-desk-heading">

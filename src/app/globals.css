@@ -360,53 +360,18 @@ button:disabled { cursor: not-allowed; }
   content: "";
 }
 
-.research-paper {
+.research-document-backdrop {
   position: absolute;
   z-index: -1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  border: 1px solid rgba(190, 177, 154, .55);
-  border-radius: 24px;
-  background:
-    repeating-linear-gradient(0deg, rgba(88, 74, 54, .028) 0, rgba(88, 74, 54, .028) 1px, transparent 1px, transparent 8px),
-    rgba(250, 245, 233, .84);
-  color: rgba(80, 68, 50, .72);
-  font-family: "Songti SC", "Noto Serif SC", "STSong", serif;
-  box-shadow: 0 28px 70px rgba(82, 65, 38, .09);
-  transform-origin: bottom center;
-}
-
-.research-paper::after {
-  position: absolute;
-  inset: 28% 10% 10%;
-  opacity: .42;
-  background: repeating-linear-gradient(0deg, rgba(84, 72, 55, .11) 0, rgba(84, 72, 55, .11) 1px, transparent 1px, transparent 14px);
-  content: "";
-}
-
-.research-paper span {
-  position: relative;
-  z-index: 1;
-  margin-top: 58px;
-  font-size: 17px;
-  letter-spacing: .08em;
-}
-
-.research-paper-back {
-  top: 8px;
-  right: 0;
-  width: 58%;
-  height: 470px;
-  transform: rotate(4deg);
-}
-
-.research-paper-middle {
-  top: 58px;
-  left: 14%;
-  width: 44%;
-  height: 380px;
-  transform: rotate(-4deg);
+  top: -20px;
+  left: -2%;
+  width: 108%;
+  height: auto;
+  opacity: .82;
+  filter: saturate(.72) contrast(.94) drop-shadow(0 28px 46px rgba(82, 65, 38, .09));
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
 .research-desk {
@@ -682,9 +647,7 @@ button:disabled { cursor: not-allowed; }
   .home-primary-action,
   .home-secondary-action { width: 100%; }
   .research-desk-shell { min-height: 500px; margin-top: 30px; }
-  .research-paper-back { top: 8px; right: -18%; width: 72%; height: 350px; }
-  .research-paper-middle { top: 48px; left: 2%; width: 60%; height: 300px; }
-  .research-paper span { margin-top: 42px; font-size: 13px; }
+  .research-document-backdrop { top: 10px; left: -8%; width: 116%; opacity: .58; }
   .research-desk { width: 96%; margin-top: 132px; padding: 16px; border-radius: 22px; }
   .research-evidence-card { min-height: 300px; margin-top: 14px; padding: 21px 18px 18px; border-radius: 18px; }
   .research-evidence-header { padding-bottom: 16px; }
