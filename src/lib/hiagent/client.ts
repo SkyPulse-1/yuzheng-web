@@ -16,11 +16,10 @@ export type EvidenceCard = {
 
 export type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };
 
-function getConfig() {
+function getTransportConfig() {
   const baseUrl = process.env.HIAGENT_BASE_URL?.replace(/\/$/, "");
   const apiKey = process.env.HIAGENT_API_KEY?.trim();
-  const trusted = process.env.HIAGENT_TRUSTED_FILTERS_ENABLED === "true";
-  if (!baseUrl || !apiKey || !trusted) return null;
+  if (!baseUrl || !apiKey) return null;
   return {
     baseUrl,
     apiKey,
@@ -30,7 +29,11 @@ function getConfig() {
 }
 
 export function isHiAgentConfigured() {
-  return getConfig() !== null;
+  return getTransportConfig() !== null && process.env.HIAGENT_TRUSTED_FILTERS_ENABLED === "true";
+}
+
+export function isHiAgentTransportConfigured() {
+  return getTransportConfig() !== null;
 }
 
 function extractOutput(value: unknown): unknown {
@@ -110,11 +113,11 @@ export function parseHiAgentSse(text: string): HiAgentResult {
 }
 
 function requestHeaders(apiKey: string) {
-  return { "Content-Type": "application/json", Apikey: apiKey };
+  return { "Content-Type": "application/json", ApiKey: apiKey };
 }
 
 export async function createHiAgentConversation(input: { userId: string; inputs?: Record<string, unknown> }): Promise<string> {
-  const config = getConfig();
+  const config = getTransportConfig();
   if (!config) throw new Error("HIAGENT_NOT_CONFIGURED");
   const response = await fetch(`${config.baseUrl}${config.createConversationPath}`, {
     method: "POST",
@@ -126,7 +129,11 @@ export async function createHiAgentConversation(input: { userId: string; inputs?
   if (!response.ok) throw new Error("HIAGENT_CREATE_CONVERSATION_FAILED");
   const result = await response.json().catch(() => ({})) as Record<string, unknown>;
   const nested = result.data && typeof result.data === "object" ? result.data as Record<string, unknown> : {};
+  const conversation = result.Conversation && typeof result.Conversation === "object"
+    ? result.Conversation as Record<string, unknown>
+    : {};
   const conversationId = result.AppConversationID ?? result.appConversationId ?? result.ConversationID
+    ?? conversation.AppConversationID ?? conversation.appConversationId ?? conversation.ConversationID
     ?? nested.AppConversationID ?? nested.appConversationId ?? nested.ConversationID;
   if (typeof conversationId !== "string" || !conversationId) throw new Error("HIAGENT_INVALID_CONVERSATION");
   return conversationId;
@@ -137,7 +144,7 @@ export async function chatWithHiAgent(input: {
   conversationId: string;
   query: string;
 }): Promise<HiAgentResult> {
-  const config = getConfig();
+  const config = getTransportConfig();
   if (!config) throw new Error("HIAGENT_NOT_CONFIGURED");
   const response = await fetch(`${config.baseUrl}${config.chatPath}`, {
     method: "POST",
@@ -146,6 +153,7 @@ export async function chatWithHiAgent(input: {
       UserID: input.userId,
       AppConversationID: input.conversationId,
       Query: input.query,
+      ResponseMode: "streaming",
     }),
     signal: AbortSignal.timeout(120000),
     cache: "no-store",

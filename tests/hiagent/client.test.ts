@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   chatWithHiAgent,
   createHiAgentConversation,
+  isHiAgentConfigured,
+  isHiAgentTransportConfigured,
   parseHiAgentSse,
 } from "../../src/lib/hiagent/client";
 
@@ -18,9 +20,16 @@ describe("HiAgent conversational client", () => {
     vi.restoreAllMocks();
   });
 
+  it("allows standalone text analysis while trusted knowledge filters stay disabled", () => {
+    vi.stubEnv("HIAGENT_TRUSTED_FILTERS_ENABLED", "false");
+
+    expect(isHiAgentTransportConfigured()).toBe(true);
+    expect(isHiAgentConfigured()).toBe(false);
+  });
+
   it("creates a remote conversation without exposing the API key", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ AppConversationID: "remote-conversation-1" }),
+      JSON.stringify({ Conversation: { AppConversationID: "remote-conversation-1" } }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     ));
     vi.stubGlobal("fetch", fetchMock);
@@ -28,7 +37,7 @@ describe("HiAgent conversational client", () => {
     await expect(createHiAgentConversation({ userId: "user-1" })).resolves.toBe("remote-conversation-1");
     const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://school.example/api/proxy/api/v1/create_conversation");
-    expect(request.headers).toMatchObject({ Apikey: "server-only-test-key" });
+    expect(request.headers).toMatchObject({ ApiKey: "server-only-test-key" });
     expect(JSON.parse(String(request.body))).toEqual({ UserID: "user-1" });
   });
 
@@ -59,6 +68,7 @@ describe("HiAgent conversational client", () => {
       UserID: "user-1",
       AppConversationID: "remote-conversation-1",
       Query: "请总结",
+      ResponseMode: "streaming",
     });
   });
 

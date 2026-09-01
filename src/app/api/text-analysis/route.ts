@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import {
   chatWithHiAgent,
   createHiAgentConversation,
-  isHiAgentConfigured,
+  isHiAgentTransportConfigured,
 } from "@/lib/hiagent/client";
 import { createClient } from "@/lib/supabase/server";
 import { analyzePastedTextRequest } from "@/lib/text-analysis";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         .maybeSingle();
       return !error && Boolean(data);
     },
-    isHiAgentConfigured,
+    isHiAgentConfigured: isHiAgentTransportConfigured,
     createConversation: (userId) => createHiAgentConversation({ userId }),
     analyze: async ({ userId, conversationId, query }) => {
       const response = await chatWithHiAgent({ userId, conversationId, query });
