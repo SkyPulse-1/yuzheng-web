@@ -14,7 +14,8 @@ export function attachUniqueDocumentIds(
   }
 
   return cards.map((card) => {
-    const { document_id: _discardedDocumentId, ...trustedCard } = card;
+    const trustedCard = { ...card };
+    delete trustedCard.document_id;
     const matches = idsByName.get(card.document_name) ?? [];
     return matches.length === 1
       ? { ...trustedCard, document_id: matches[0] }

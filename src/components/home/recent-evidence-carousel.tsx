@@ -38,10 +38,6 @@ export function RecentEvidenceCarousel({
     return () => window.clearInterval(timer);
   }, [activeIndex, paused, reducedMotion, workspaces.length]);
 
-  useEffect(() => {
-    if (activeIndex >= workspaces.length) setActiveIndex(0);
-  }, [activeIndex, workspaces.length]);
-
   const updateGlow = (event: MouseEvent<HTMLDivElement>) => {
     if (reducedMotion) return;
     const bounds = event.currentTarget.getBoundingClientRect();
