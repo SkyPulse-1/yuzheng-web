@@ -4,9 +4,9 @@
 
 **Goal:** 在不正式部署、不泄露任何密钥的前提下，为当前语证生产构建生成一个测试者可直接打开的临时 HTTPS 地址。
 
-**Architecture:** 本机运行 Next.js 生产服务，仅监听独立端口 `3200`。Cloudflare Quick Tunnel 因学校网络阻止 `7844` 端口而不可用；经用户确认，改用 Windows OpenSSH 通过 Pinggy 的 `443` 端口建立随机 HTTPS 地址。Supabase 和 HiAgent 配置继续仅由本机服务端读取。
+**Architecture:** 本机运行 Next.js 生产服务，仅监听独立端口 `3200`。Cloudflare Quick Tunnel 因学校网络阻止 `7844` 端口而不可用；经用户确认，改用官方 Pinggy CLI 通过 HTTPS/WebSocket `443` 端口建立随机 HTTPS 地址。Supabase 和 HiAgent 配置继续仅由本机服务端读取。
 
-**Tech Stack:** Next.js 16.3.3、Node.js、npm、Vitest、Windows OpenSSH、Pinggy 临时隧道、PowerShell
+**Tech Stack:** Next.js 16.3.3、Node.js、npm、Vitest、Pinggy CLI 临时隧道、PowerShell
 
 **Spec:** `docs/superpowers/specs/2026-09-01-temporary-public-test-link-design.md`
 
@@ -134,31 +134,21 @@ Expected: `200`。
 ### Task 3: 创建 Pinggy 临时 HTTPS 隧道
 
 **Files:**
-- Modify at runtime: 当前终端的 SSH 会话
+- Modify at runtime: 当前终端的 Pinggy CLI 会话和 npm 用户缓存
 
 **Interfaces:**
 - Consumes: Task 2 的 `http://127.0.0.1:3200`。
-- Produces: 一个随机 `https://*.a.pinggy.link` 地址和持续运行的 SSH 会话。
+- Produces: 一个随机 `https://*.run.pinggy-free.link` 地址和持续运行的 Pinggy CLI 会话。
 
-- [ ] **Step 1: 确认 Windows OpenSSH 可用**
-
-Run:
-
-```powershell
-ssh -V
-```
-
-Expected: 输出已安装的 OpenSSH 版本，不安装新软件。
-
-- [ ] **Step 2: 通过普通 HTTPS 端口建立反向隧道**
+- [ ] **Step 1: 使用 npm 临时缓存启动官方 Pinggy CLI**
 
 Run:
 
 ```powershell
-ssh -p 443 -R0:127.0.0.1:3200 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -T free.pinggy.io
+npx.cmd --yes pinggy@latest -l http://127.0.0.1:3200
 ```
 
-Expected: SSH 会话保持运行并输出一个随机 `https://*.a.pinggy.link` 地址，不输出任何环境变量或项目密钥。
+Expected: Pinggy CLI 会话保持运行并输出一个随机 `https://*.run.pinggy-free.link` 地址，不修改项目依赖，不输出任何环境变量或项目密钥。未登录免费隧道约 60 分钟后失效。
 
 ### Task 4: 公网只读验证与交付
 
@@ -195,6 +185,8 @@ Expected: 跳转至登录页，或返回不包含 Library、文档及证据数�
 - [ ] **Step 3: 在浏览器打开并保留临时首页**
 
 Expected: 页面标题为“语证｜可溯源学术证据工具”，首页布局正常，不执行注册、登录或文件上传。
+
+Note: 免费链接首次在普通浏览器打开会显示 Pinggy 官方安全提示页，测试者确认后进入语证；程序化只读验证可按 Pinggy 官方说明发送 `X-Pinggy-No-Screen: 1` 请求头。
 
 - [ ] **Step 4: 向用户交付链接和限制**
 
