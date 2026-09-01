@@ -1,27 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
-import type { EvidenceCard } from "@/lib/hiagent/client";
+import type { HomeResearchWorkspace } from "@/lib/evidence-views";
 
-const SAMPLE_CARD: EvidenceCard = {
-  card_id: "sample-long-march",
-  claim_type: "长征战略意义比较",
-  claim: "两份材料都将战略转移视为保存革命力量的重要转折，但论证侧重点不同。",
-  evidence_text: "……实现了战略方针的重大转变……",
-  document_name: "A.pdf",
-  page_number: 3,
-};
+const ROTATION_INTERVAL_MS = 20_000;
 
-export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
-  const displayCards = cards.length ? cards : [SAMPLE_CARD];
+export function RecentEvidenceCarousel({
+  workspaces,
+  loggedIn,
+  loadFailed,
+}: {
+  workspaces: HomeResearchWorkspace[];
+  loggedIn: boolean;
+  loadFailed: boolean;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
   const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const transitionTimer = useRef<number | null>(null);
-  const card = displayCards[activeIndex] ?? displayCards[0];
+  const workspace = workspaces[activeIndex] ?? workspaces[0];
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -31,31 +30,17 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
     return () => query.removeEventListener("change", updatePreference);
   }, []);
 
-  useEffect(() => () => {
-    if (transitionTimer.current !== null) window.clearTimeout(transitionTimer.current);
-  }, []);
-
-  const selectCard = useCallback((nextIndex: number) => {
-    const normalizedIndex = (nextIndex + displayCards.length) % displayCards.length;
-    if (normalizedIndex === activeIndex || displayCards.length < 2) return;
-    if (transitionTimer.current !== null) window.clearTimeout(transitionTimer.current);
-    if (reducedMotion) {
-      setActiveIndex(normalizedIndex);
-      return;
-    }
-    setVisible(false);
-    transitionTimer.current = window.setTimeout(() => {
-      setActiveIndex(normalizedIndex);
-      setVisible(true);
-      transitionTimer.current = null;
-    }, 280);
-  }, [activeIndex, displayCards.length, reducedMotion]);
+  useEffect(() => {
+    if (workspaces.length < 2 || paused || reducedMotion) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % workspaces.length);
+    }, ROTATION_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [activeIndex, paused, reducedMotion, workspaces.length]);
 
   useEffect(() => {
-    if (displayCards.length < 2 || paused || reducedMotion) return;
-    const timer = window.setInterval(() => selectCard(activeIndex + 1), 5000);
-    return () => window.clearInterval(timer);
-  }, [activeIndex, displayCards.length, paused, reducedMotion, selectCard]);
+    if (activeIndex >= workspaces.length) setActiveIndex(0);
+  }, [activeIndex, workspaces.length]);
 
   const updateGlow = (event: MouseEvent<HTMLDivElement>) => {
     if (reducedMotion) return;
@@ -66,7 +51,7 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
 
   return (
     <div
-      className="research-desk-shell"
+      className={`research-desk-shell ${paused ? "is-paused" : ""}`}
       onMouseMove={updateGlow}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -91,17 +76,19 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
             <p className="research-desk-kicker">最近研究</p>
             <p className="research-desk-caption">从结论回到它的出处</p>
           </div>
-          {displayCards.length > 1 ? (
-            <div className="research-desk-progress" aria-label="切换最近研究的证据卡">
-              {displayCards.map((item, index) => (
+          {workspaces.length > 1 ? (
+            <div className="research-desk-progress" aria-label="切换最近研究工作台">
+              {workspaces.map((item, index) => (
                 <button
-                  key={`${item.card_id}-${index}`}
+                  key={item.libraryId}
                   type="button"
-                  onClick={() => selectCard(index)}
+                  onClick={() => setActiveIndex(index)}
                   className={index === activeIndex ? "is-active" : undefined}
-                  aria-label={`第 ${index + 1} 张证据`}
+                  aria-label={`查看第 ${index + 1} 个工作台：${item.libraryName}`}
                   aria-current={index === activeIndex ? "true" : undefined}
-                />
+                >
+                  <span aria-hidden="true" />
+                </button>
               ))}
             </div>
           ) : (
@@ -109,38 +96,50 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
           )}
         </div>
 
-        <article
-          aria-live="polite"
-          className={`research-evidence-card ${visible ? "is-visible" : "is-hidden"}`}
-        >
-          <header className="research-evidence-header">
-            <h2>{card.claim_type || "证据卡"}</h2>
-            <span className="research-verified">有出处</span>
-          </header>
+        {workspace ? (
+          <article key={`${workspace.libraryId}-${activeIndex}`} aria-live="polite" className="research-evidence-card is-visible">
+            <div className="research-workspace-context">
+              <Link href={workspace.workspaceHref} className="research-workspace-name">{workspace.libraryName}</Link>
+              <Link href={workspace.workspaceHref} className="research-workspace-question">{workspace.question}</Link>
+            </div>
 
-          <div className="research-evidence-body">
-            <p className="research-evidence-label">原文证据</p>
-            <blockquote>{card.claim || card.evidence_text}</blockquote>
-            {card.evidence_text && card.evidence_text !== card.claim ? (
-              <p className="research-evidence-excerpt">“{card.evidence_text}”</p>
-            ) : null}
-          </div>
+            {workspace.card && workspace.sourceHref ? (
+              <>
+                <header className="research-evidence-header">
+                  <h2>{workspace.card.claim_type || "证据结论"}</h2>
+                  <span className="research-verified">来源可回溯</span>
+                </header>
 
-          <footer className="research-evidence-footer">
-            <span>来源：{card.document_name || "未命名资料"}{card.page_number ? ` · 第 ${card.page_number} 页` : ""}</span>
-            {card.document_id ? (
-              <a
-                href={`/api/documents/${card.document_id}/file${card.page_number ? `?page=${card.page_number}` : ""}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                查看原文
-              </a>
+                <div className="research-evidence-body">
+                  <p className="research-evidence-label">证据结论</p>
+                  <blockquote>{workspace.card.claim}</blockquote>
+                  {workspace.card.evidence_text && workspace.card.evidence_text !== workspace.card.claim ? (
+                    <p className="research-evidence-excerpt">“{workspace.card.evidence_text}”</p>
+                  ) : null}
+                </div>
+
+                <footer className="research-evidence-footer">
+                  <span>来源：{workspace.card.document_name}{workspace.card.page_number ? ` · 第 ${workspace.card.page_number} 页` : ""}</span>
+                  <a href={workspace.sourceHref} target="_blank" rel="noreferrer">查看原文</a>
+                </footer>
+              </>
             ) : (
-              <span className="research-evidence-link-preview">查看原文</span>
+              <div className="research-empty-state research-workspace-empty">
+                <p className="research-empty-kicker">真实研究记录</p>
+                <h2>这次分析没有形成可回溯的原文证据</h2>
+                <p>工作台和问题记录仍然保留，但首页不会用未核验内容代替来源。</p>
+                <Link href={workspace.workspaceHref}>继续研究</Link>
+              </div>
             )}
-          </footer>
-        </article>
+          </article>
+        ) : (
+          <article aria-live="polite" className="research-evidence-card research-empty-state">
+            <p className="research-empty-kicker">{loadFailed ? "读取未完成" : loggedIn ? "等待第一项研究" : "你的研究，从来源开始"}</p>
+            <h2>{loadFailed ? "最近研究暂时无法读取" : loggedIn ? "还没有可回溯的研究记录" : "登录后继续最近的工作台"}</h2>
+            <p>{loadFailed ? "你的资料没有丢失，可以进入工作区继续使用。" : loggedIn ? "完成一次证据问答后，这里会展示真实工作台与原文入口。" : "登录后，首页只展示属于你的真实分析记录。"}</p>
+            <Link href={loggedIn ? "/libraries" : "/login"}>{loggedIn ? "进入知识库" : "登录 / 注册"}</Link>
+          </article>
+        )}
       </section>
     </div>
   );

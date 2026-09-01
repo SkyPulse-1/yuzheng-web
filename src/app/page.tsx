@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { RecentEvidenceCarousel } from "@/components/home/recent-evidence-carousel";
-import { parseRecentEvidenceRows } from "@/lib/evidence-views";
-import type { EvidenceCard } from "@/lib/hiagent/client";
+import { buildRecentResearchWorkspaces, type HomeResearchWorkspace } from "@/lib/evidence-views";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,23 +13,65 @@ const PRINCIPLES = [
 ] as const;
 
 export default async function Home() {
-  let recentCards: EvidenceCard[] = [];
+  let recentWorkspaces: HomeResearchWorkspace[] = [];
   let loggedIn = false;
+  let loadFailed = false;
 
   try {
     const supabase = await createClient();
     const { data: auth } = await supabase.auth.getUser();
     loggedIn = Boolean(auth.user);
     if (auth.user) {
-      const { data } = await supabase
-        .from("evidence_card_views")
-        .select("card_json")
-        .order("opened_at", { ascending: false })
-        .limit(3);
-      recentCards = parseRecentEvidenceRows(data);
+      const { data: conversations, error: conversationError } = await supabase
+        .from("conversations")
+        .select("id, library_id, title, status, updated_at")
+        .eq("status", "COMPLETED")
+        .order("updated_at", { ascending: false })
+        .limit(18);
+      if (conversationError) throw conversationError;
+
+      const conversationIds = (conversations ?? []).map((conversation) => conversation.id);
+      const { data: messages, error: messageError } = conversationIds.length
+        ? await supabase
+            .from("messages")
+            .select("conversation_id, evidence_cards_json, created_at")
+            .in("conversation_id", conversationIds)
+            .eq("role", "assistant")
+            .order("created_at", { ascending: false })
+        : { data: [], error: null };
+      if (messageError) throw messageError;
+
+      const libraryIds = [...new Set((conversations ?? []).map((conversation) => conversation.library_id))];
+      const documentIds = [...new Set((messages ?? []).flatMap((message) => {
+        if (!Array.isArray(message.evidence_cards_json)) return [];
+        return message.evidence_cards_json.flatMap((value) => {
+          if (!value || typeof value !== "object") return [];
+          const documentId = (value as Record<string, unknown>).document_id;
+          return typeof documentId === "string" ? [documentId] : [];
+        });
+      }))];
+
+      const [libraryResult, documentResult] = await Promise.all([
+        libraryIds.length
+          ? supabase.from("libraries").select("id, name").in("id", libraryIds)
+          : Promise.resolve({ data: [], error: null }),
+        documentIds.length
+          ? supabase.from("documents").select("id, library_id, original_name, deleted_at").in("id", documentIds).is("deleted_at", null)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (libraryResult.error) throw libraryResult.error;
+      if (documentResult.error) throw documentResult.error;
+
+      recentWorkspaces = buildRecentResearchWorkspaces({
+        conversations: conversations ?? [],
+        messages: messages ?? [],
+        libraries: libraryResult.data ?? [],
+        documents: documentResult.data ?? [],
+      });
     }
   } catch {
-    recentCards = [];
+    recentWorkspaces = [];
+    loadFailed = loggedIn;
   }
 
   const destination = loggedIn ? "/dashboard" : "/login";
@@ -70,7 +111,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <RecentEvidenceCarousel cards={recentCards} />
+        <RecentEvidenceCarousel workspaces={recentWorkspaces} loggedIn={loggedIn} loadFailed={loadFailed} />
       </section>
 
       <section id="principles" className="home-principles" aria-label="语证的证据原则">
