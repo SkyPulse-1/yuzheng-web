@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 
 import type { EvidenceCard } from "@/lib/hiagent/client";
 
@@ -21,7 +21,6 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const transitionTimer = useRef<number | null>(null);
   const card = displayCards[activeIndex] ?? displayCards[0];
-  const isSample = cards.length === 0;
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -57,9 +56,17 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
     return () => window.clearInterval(timer);
   }, [activeIndex, displayCards.length, paused, reducedMotion, selectCard]);
 
+  const updateGlow = (event: MouseEvent<HTMLDivElement>) => {
+    if (reducedMotion) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--desk-glow-x", `${event.clientX - bounds.left}px`);
+    event.currentTarget.style.setProperty("--desk-glow-y", `${event.clientY - bounds.top}px`);
+  };
+
   return (
     <div
-      className="relative mx-auto w-full max-w-lg"
+      className="research-desk-shell"
+      onMouseMove={updateGlow}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -67,42 +74,70 @@ export function RecentEvidenceCarousel({ cards }: { cards: EvidenceCard[] }) {
         if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
       }}
     >
-      <div className="absolute -inset-10 rounded-full bg-amber-300/20 blur-3xl" />
-      <article
-        aria-live="polite"
-        className={`relative min-h-[344px] rounded-[2rem] border border-stone-200 bg-white p-6 shadow-[0_30px_100px_rgba(68,64,60,0.14)] transition-all duration-300 motion-reduce:transition-none sm:p-8 ${visible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-5">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-stone-400">{isSample ? "示例证据卡" : "最近打开"}</p>
-            <p className="mt-1 font-serif text-lg font-semibold">{card.claim_type || "证据卡"}</p>
-          </div>
-          <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">有出处</span>
-        </div>
-        <div className="mt-6 space-y-5">
-          <div className="rounded-2xl bg-stone-50 p-5">
-            <p className="text-xs font-medium text-stone-400">支持观点</p>
-            <p className="mt-2 line-clamp-3 leading-7 text-stone-700">{card.claim}</p>
-          </div>
-          <blockquote className="line-clamp-2 border-l-2 border-amber-700 pl-4 text-sm leading-6 text-stone-500">“{card.evidence_text}”</blockquote>
-          <div className="flex items-center justify-between gap-3 text-xs text-stone-500">
-            <span className="min-w-0 truncate">来源：{card.document_name}{card.page_number ? ` · 第 ${card.page_number} 页` : ""}</span>
-            {card.document_id ? <a href={`/api/documents/${card.document_id}/file${card.page_number ? `?page=${card.page_number}` : ""}`} target="_blank" rel="noreferrer" className="shrink-0 font-medium text-amber-800 hover:underline">查看原文 →</a> : <span className="shrink-0 font-medium text-amber-800">查看原文 →</span>}
-          </div>
-        </div>
-      </article>
+      <div className="research-paper research-paper-back" aria-hidden="true">
+        <span>中国革命战争的战略问题</span>
+      </div>
+      <div className="research-paper research-paper-middle" aria-hidden="true">
+        <span>红军长征史料选编</span>
+      </div>
 
-      {displayCards.length > 1 ? (
-        <div className="relative mt-4 flex items-center justify-center gap-4" aria-label="切换最近打开的证据卡">
-          <button type="button" onClick={() => selectCard(activeIndex - 1)} className="rounded-full border border-stone-300 bg-white/80 px-3 py-1.5 text-sm text-stone-600 transition hover:border-amber-700 hover:text-amber-800" aria-label="上一张">←</button>
-          <div className="flex gap-2">
-            {displayCards.map((item, index) => (
-              <button key={`${item.card_id}-${index}`} type="button" onClick={() => selectCard(index)} className={`h-2 rounded-full transition-all ${index === activeIndex ? "w-6 bg-amber-700" : "w-2 bg-stone-300 hover:bg-stone-400"}`} aria-label={`第 ${index + 1} 张`} aria-current={index === activeIndex ? "true" : undefined} />
-            ))}
+      <section className="research-desk" aria-label="最近研究证据">
+        <div className="research-desk-heading">
+          <div>
+            <p className="research-desk-kicker">最近研究</p>
+            <p className="research-desk-caption">从结论回到它的出处</p>
           </div>
-          <button type="button" onClick={() => selectCard(activeIndex + 1)} className="rounded-full border border-stone-300 bg-white/80 px-3 py-1.5 text-sm text-stone-600 transition hover:border-amber-700 hover:text-amber-800" aria-label="下一张">→</button>
+          {displayCards.length > 1 ? (
+            <div className="research-desk-progress" aria-label="切换最近研究的证据卡">
+              {displayCards.map((item, index) => (
+                <button
+                  key={`${item.card_id}-${index}`}
+                  type="button"
+                  onClick={() => selectCard(index)}
+                  className={index === activeIndex ? "is-active" : undefined}
+                  aria-label={`第 ${index + 1} 张证据`}
+                  aria-current={index === activeIndex ? "true" : undefined}
+                />
+              ))}
+            </div>
+          ) : (
+            <span className="research-desk-progress-single" aria-hidden="true" />
+          )}
         </div>
-      ) : null}
+
+        <article
+          aria-live="polite"
+          className={`research-evidence-card ${visible ? "is-visible" : "is-hidden"}`}
+        >
+          <header className="research-evidence-header">
+            <h2>{card.claim_type || "证据卡"}</h2>
+            <span className="research-verified">有出处</span>
+          </header>
+
+          <div className="research-evidence-body">
+            <p className="research-evidence-label">原文证据</p>
+            <blockquote>{card.claim || card.evidence_text}</blockquote>
+            {card.evidence_text && card.evidence_text !== card.claim ? (
+              <p className="research-evidence-excerpt">“{card.evidence_text}”</p>
+            ) : null}
+          </div>
+
+          <footer className="research-evidence-footer">
+            <span>来源：{card.document_name || "未命名资料"}{card.page_number ? ` · 第 ${card.page_number} 页` : ""}</span>
+            {card.document_id ? (
+              <a
+                href={`/api/documents/${card.document_id}/file${card.page_number ? `?page=${card.page_number}` : ""}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                查看原文
+              </a>
+            ) : (
+              <span className="research-evidence-link-preview">查看原文</span>
+            )}
+          </footer>
+        </article>
+      </section>
     </div>
   );
 }
