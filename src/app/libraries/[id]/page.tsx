@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AppHeader } from "@/components/app-header";
 import { DocumentManager } from "@/components/documents/document-manager";
+import { PastedTextAnalysis } from "@/components/documents/pasted-text-analysis";
 import { type LibraryDocument } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,6 +46,7 @@ export default async function LibraryDetailPage({ params }: { params: Promise<{ 
           <div className="surface-card px-5 py-4"><p className="text-xs text-stone-500">处理中或待处理</p><p className="mt-1 text-2xl font-semibold text-amber-700">{libraryDocuments.length - readyCount}</p></div>
         </div>
         <DocumentManager libraryId={id} documents={libraryDocuments} />
+        <PastedTextAnalysis libraryId={id} />
       </div>
     </main>
   );
