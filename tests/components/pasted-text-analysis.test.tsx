@@ -84,6 +84,8 @@ describe("formal pasted text source manager", () => {
     })]} />);
 
     expect(screen.queryByRole("button", { name: "修改" })).toBeNull();
-    expect(screen.getByRole("button", { name: "重新分析" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /分析/ })).toBeNull();
+    expect(screen.queryByText("内容摘要")).toBeNull();
+    expect(screen.getByRole("link", { name: "前往证据问答" }).getAttribute("href")).toBe("/assistant?libraryId=library-1");
   });
 });
