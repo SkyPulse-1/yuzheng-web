@@ -1,4 +1,6 @@
-export const PASTED_TEXT_LIMIT = 8000;
+import { PASTED_TEXT_LIMIT } from "./text-analysis-constants";
+
+export { PASTED_TEXT_LIMIT } from "./text-analysis-constants";
 
 export type TextAnalysisRequestInput = {
   userId?: string;

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-import { PASTED_TEXT_LIMIT } from "../../lib/text-analysis";
+import { PASTED_TEXT_LIMIT } from "../../lib/text-analysis-constants";
 
 type AnalysisApiResponse = {
   answer?: unknown;
