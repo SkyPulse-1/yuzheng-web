@@ -7,7 +7,7 @@
 ## 范围
 
 - 使用当前功能分支的生产构建运行本地 Next.js 服务。
-- 使用 Cloudflare Quick Tunnel 将该本地服务映射为随机 `trycloudflare.com` HTTPS 地址。
+- 优先使用 Cloudflare Quick Tunnel；因当前学校网络阻止其 UDP/TCP `7844` 出站连接，经用户确认后改用通过 SSH `443` 端口工作的 Pinggy 临时 HTTPS 隧道。
 - 测试者使用各自新注册的用户名和密码进行测试。
 - 测试结束后停止本地服务和隧道，公网地址随即失效。
 - 正式部署、固定域名和 HiAgent 文档处理接入不属于本次范围。
@@ -25,13 +25,13 @@
 
 1. 对当前功能分支执行测试、代码检查和生产构建。
 2. 在独立端口启动 `next start`，仅作为本次测试源站。
-3. 启动 Cloudflare Quick Tunnel，将随机 HTTPS 地址转发至该端口。
+3. 使用 Windows 自带 OpenSSH 连接 Pinggy `443` 端口，将随机 HTTPS 地址转发至该端口。
 4. 从公网地址检查首页、注册、登录、Library CRUD、文档上传界面、下载和删除入口。
 5. 把临时链接及当前已知限制交给用户。
 
 ## 数据流
 
-浏览器请求先到 Cloudflare 临时域名，再由隧道转发至本机 Next.js 生产服务。Next.js 按现有服务端配置访问 Supabase。服务端密钥不发送给测试者，也不进入浏览器页面。
+浏览器请求先到 Pinggy 临时域名，再由 SSH 反向隧道转发至本机 Next.js 生产服务。Next.js 按现有服务端配置访问 Supabase。服务端密钥不发送给测试者，也不进入浏览器页面。
 
 ## 错误处理
 

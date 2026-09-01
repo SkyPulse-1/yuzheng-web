@@ -4,9 +4,9 @@
 
 **Goal:** 在不正式部署、不泄露任何密钥的前提下，为当前语证生产构建生成一个测试者可直接打开的临时 HTTPS 地址。
 
-**Architecture:** 本机运行 Next.js 生产服务，仅监听独立端口 `3200`。Cloudflare Quick Tunnel 通过出站连接把随机 `trycloudflare.com` HTTPS 地址转发到该端口；Supabase 和 HiAgent 配置继续仅由本机服务端读取。
+**Architecture:** 本机运行 Next.js 生产服务，仅监听独立端口 `3200`。Cloudflare Quick Tunnel 因学校网络阻止 `7844` 端口而不可用；经用户确认，改用 Windows OpenSSH 通过 Pinggy 的 `443` 端口建立随机 HTTPS 地址。Supabase 和 HiAgent 配置继续仅由本机服务端读取。
 
-**Tech Stack:** Next.js 16.3.3、Node.js、npm、Vitest、Cloudflare Wrangler Quick Tunnel、PowerShell
+**Tech Stack:** Next.js 16.3.3、Node.js、npm、Vitest、Windows OpenSSH、Pinggy 临时隧道、PowerShell
 
 **Spec:** `docs/superpowers/specs/2026-09-01-temporary-public-test-link-design.md`
 
@@ -131,38 +131,34 @@ Run:
 
 Expected: `200`。
 
-### Task 3: 创建临时 HTTPS 隧道
+### Task 3: 创建 Pinggy 临时 HTTPS 隧道
 
 **Files:**
-- Create at runtime: `C:\Users\huang\AppData\Local\Temp\yuzheng-web-public-test\tunnel.out.log`
-- Create at runtime: `C:\Users\huang\AppData\Local\Temp\yuzheng-web-public-test\tunnel.err.log`
+- Modify at runtime: 当前终端的 SSH 会话
 
 **Interfaces:**
 - Consumes: Task 2 的 `http://127.0.0.1:3200`。
-- Produces: 一个随机 `https://*.trycloudflare.com` 地址和隧道进程 ID。
+- Produces: 一个随机 `https://*.a.pinggy.link` 地址和持续运行的 SSH 会话。
 
-- [ ] **Step 1: 使用 npm 临时缓存启动官方 Quick Tunnel 工具**
-
-Run:
-
-```powershell
-$testRuntimeDir = 'C:\Users\huang\AppData\Local\Temp\yuzheng-web-public-test'
-$npxPath = (Get-Command npx.cmd).Source
-Start-Process -FilePath $npxPath -ArgumentList @('--yes','wrangler@latest','tunnel','quick-start','http://127.0.0.1:3200') -WorkingDirectory (Get-Location) -RedirectStandardOutput (Join-Path $testRuntimeDir 'tunnel.out.log') -RedirectStandardError (Join-Path $testRuntimeDir 'tunnel.err.log') -WindowStyle Hidden -PassThru
-```
-
-Expected: 进程保持运行，日志出现随机 `https://*.trycloudflare.com` 地址；项目依赖和 `package.json` 不发生变化。
-
-- [ ] **Step 2: 从日志中提取临时地址**
+- [ ] **Step 1: 确认 Windows OpenSSH 可用**
 
 Run:
 
 ```powershell
-$logs = Get-Content 'C:\Users\huang\AppData\Local\Temp\yuzheng-web-public-test\tunnel*.log' -Raw
-[regex]::Match($logs, 'https://[a-z0-9-]+\.trycloudflare\.com').Value
+ssh -V
 ```
 
-Expected: 输出一个 HTTPS 地址，不输出任何环境变量或密钥。
+Expected: 输出已安装的 OpenSSH 版本，不安装新软件。
+
+- [ ] **Step 2: 通过普通 HTTPS 端口建立反向隧道**
+
+Run:
+
+```powershell
+ssh -p 443 -R0:127.0.0.1:3200 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -T free.pinggy.io
+```
+
+Expected: SSH 会话保持运行并输出一个随机 `https://*.a.pinggy.link` 地址，不输出任何环境变量或项目密钥。
 
 ### Task 4: 公网只读验证与交付
 
