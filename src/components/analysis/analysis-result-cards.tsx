@@ -29,7 +29,15 @@ export function AnalysisResultCards({ result, sourceTitle, sourceText }: {
         const meta = SECTION_META[key];
         const items = result[key];
         return (
-          <article key={key} className="analysis-card glass-hover-card">
+          <article
+            key={key}
+            className="analysis-card glass-hover-card"
+            onPointerMove={(event) => {
+              const bounds = event.currentTarget.getBoundingClientRect();
+              event.currentTarget.style.setProperty("--glow-x", `${event.clientX - bounds.left}px`);
+              event.currentTarget.style.setProperty("--glow-y", `${event.clientY - bounds.top}px`);
+            }}
+          >
             <button type="button" className="flex h-full w-full flex-col text-left" onClick={() => setOpenKey(key)}>
               <div className="flex items-start justify-between gap-4">
                 <div>

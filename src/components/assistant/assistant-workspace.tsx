@@ -127,6 +127,7 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
       <SourceShelf sources={sources} selectedIds={selectedIds} onChange={setSelectedIds} />
       <section className="question-workspace">
         <div className="question-workspace-title"><span>{libraryName}</span><span>{sources.length} 份可用资料</span></div>
+        {!sources.length ? <p className="warning-banner mx-5 mt-5 sm:mx-8">当前知识库还没有可分析的文档。请先上传文件，或保存一份粘贴文字。</p> : null}
         <QuestionBoard
           questions={questions}
           hasMore={Boolean(nextCursor)}
