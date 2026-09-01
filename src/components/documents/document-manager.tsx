@@ -116,7 +116,7 @@ export function DocumentManager({ libraryId, documents }: { libraryId: string; d
   }
 
   async function deleteDocument(document: LibraryDocument) {
-    const confirmed = window.confirm(`确定删除“${document.original_name}”吗？\n\n文件和文档记录都会被删除，此操作不可撤销。`);
+    const confirmed = window.confirm(`将“${document.original_name}”移入回收站吗？\n\n30 天内可以恢复。`);
     if (!confirmed) return;
     setError("");
     const response = await fetch(`/api/documents/${document.id}`, { method: "DELETE" });
