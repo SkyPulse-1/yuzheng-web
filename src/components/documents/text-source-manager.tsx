@@ -158,7 +158,6 @@ export function TextSourceManager({ libraryId, sources }: { libraryId: string; s
                     <button type="button" className="secondary-button" disabled={pendingId === activeSource.id} onClick={() => moveToTrash(activeSource)}>移入回收站</button>
                   </div>
                 </div>
-                {activeSource.error_message ? <p className="warning-banner mt-4">{activeSource.error_message}</p> : null}
                 <div className="mt-5 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-xl border border-outline/70 bg-surface-muted/35 px-4 py-4 text-sm leading-7 text-ink-soft">
                   {activeSource.text_content}
                 </div>
