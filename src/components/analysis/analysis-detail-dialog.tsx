@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { SourceContextPopover } from "./source-context-popover";
+import { useDialogTransition } from "../../hooks/use-dialog-transition";
 import type { AnalysisItem, SourceExcerpt } from "../../lib/analysis-results";
 
 export function AnalysisDetailDialog({
@@ -22,27 +23,29 @@ export function AnalysisDetailDialog({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [activeExcerpt, setActiveExcerpt] = useState<SourceExcerpt | null>(null);
+  const { closing, requestClose } = useDialogTransition(onClose);
 
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") requestClose();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       previous?.focus();
     };
-  }, [onClose, open]);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="dialog-backdrop" data-state={closing ? "closing" : "open"} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
       <section
-        className="analysis-dialog"
+        className="analysis-dialog dialog-surface"
+        data-state={closing ? "closing" : "open"}
         role="dialog"
         aria-modal="true"
         aria-label={`${title}详情`}
@@ -52,7 +55,7 @@ export function AnalysisDetailDialog({
             <p className="eyebrow">{sourceTitle}</p>
             <h2 className="mt-2 font-serif text-2xl font-semibold text-ink">{title}</h2>
           </div>
-          <button ref={closeRef} type="button" onClick={onClose} className="secondary-button">关闭</button>
+          <button ref={closeRef} type="button" onClick={requestClose} className="secondary-button">关闭</button>
         </header>
 
         <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-8">

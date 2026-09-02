@@ -2,29 +2,32 @@
 
 import { useEffect, useRef } from "react";
 
+import { useDialogTransition } from "../../hooks/use-dialog-transition";
 import type { QuestionCard } from "../../lib/questions";
 
 export function QuestionDetailDialog({ question, onClose }: { question: QuestionCard; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const { closing, requestClose } = useDialogTransition(onClose);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    function keydown(event: KeyboardEvent) { if (event.key === "Escape") onClose(); }
+    function keydown(event: KeyboardEvent) { if (event.key === "Escape") requestClose(); }
     document.addEventListener("keydown", keydown);
     return () => { document.removeEventListener("keydown", keydown); previous?.focus(); };
-  }, [onClose]);
+  }, [requestClose]);
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="dialog-backdrop" data-state={closing ? "closing" : "open"} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
       <section
-        className="question-dialog"
+        className="question-dialog dialog-surface"
+        data-state={closing ? "closing" : "open"}
         role="dialog"
         aria-modal="true"
         aria-label="问题卡片详情"
       >
         <header className="analysis-dialog-header">
           <div><p className="eyebrow">证据问答</p><h2 className="mt-2 max-w-4xl font-serif text-2xl font-semibold leading-9 text-ink">{question.question}</h2></div>
-          <button ref={closeRef} type="button" className="secondary-button" onClick={onClose}>关闭</button>
+          <button ref={closeRef} type="button" className="secondary-button" onClick={requestClose}>关闭</button>
         </header>
         <div className="grid min-h-0 flex-1 gap-8 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_400px] lg:p-8">
           <article><p className="field-label">分析结论</p><div className="mt-4 whitespace-pre-wrap text-base leading-8 text-ink-soft">{question.answer || question.error || "当前没有可显示的结论。"}</div></article>
