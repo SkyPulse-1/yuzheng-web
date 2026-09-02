@@ -61,7 +61,7 @@ describe("AssistantWorkspace", () => {
     }));
   });
 
-  it("automatically creates four evidence cards after one source is confirmed", async () => {
+  it("keeps a composer and inserts a completed follow-up card second after one source is confirmed", async () => {
     const user = userEvent.setup();
     const result = {
       content_summary: [{ text: "材料强调可核验。", sources: [{ quote: "结论应回到原文" }] }],
@@ -69,7 +69,28 @@ describe("AssistantWorkspace", () => {
       source_evidence: [{ text: "存在直接依据。", sources: [{ quote: "直接依据" }] }],
       uncertainties: [{ text: "样本范围未说明。", sources: [], basis: "综合判断" as const }],
     };
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ result, status: "READY" }) });
+    const now = "2026-09-02T09:00:00.000Z";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ result, status: "READY" }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          question: {
+            id: "question-1",
+            question: "核对作者的主要判断",
+            status: "COMPLETED",
+            answer: "作者强调结论需要原文支持。",
+            evidenceCards: [],
+            evidenceCount: 0,
+            selectedDocumentIds: ["text-1"],
+            sourceCount: 1,
+            sourceWarning: null,
+            error: null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        }),
+      });
     vi.stubGlobal("fetch", fetchMock);
 
     render(<AssistantWorkspace
@@ -97,7 +118,23 @@ describe("AssistantWorkspace", () => {
     expect(screen.getByText("关键观点")).toBeTruthy();
     expect(screen.getByText("原文依据")).toBeTruthy();
     expect(screen.getByText("信息不足与歧义")).toBeTruthy();
-    expect(screen.queryByRole("textbox", { name: "分析需求" })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "分析需求" })).toBeTruthy();
+
+    await user.type(screen.getByRole("textbox", { name: "分析需求" }), "核对作者的主要判断");
+    await user.click(screen.getByRole("button", { name: "开始分析" }));
+    await waitFor(() => expect(screen.getByText("作者强调结论需要原文支持。")).toBeTruthy());
+
+    const cards = screen.getAllByTestId("analysis-deck-item");
+    expect(cards[0].getAttribute("data-deck-item-id")).toBe("section:content_summary");
+    expect(cards[1].getAttribute("data-deck-item-id")).toBe("question:question-1");
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/chat", expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        libraryId: "library-1",
+        selectedDocumentIds: ["text-1"],
+        message: "核对作者的主要判断",
+      }),
+    }));
 
     await user.click(screen.getByRole("button", { name: /内容摘要/ }));
     const dialog = screen.getByRole("dialog", { name: "内容摘要详情" });

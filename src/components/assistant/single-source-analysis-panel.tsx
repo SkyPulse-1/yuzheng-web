@@ -1,18 +1,29 @@
 "use client";
 
-import { AnalysisResultCards } from "../analysis/analysis-result-cards";
+import { useMemo } from "react";
+
+import { buildSingleSourceDeckItems } from "../../lib/analysis-deck";
 import type { TextAnalysisResult } from "../../lib/analysis-results";
+import type { QuestionCard } from "../../lib/questions";
+import { QuestionComposer } from "./question-composer";
+import { SingleSourceAnalysisDeck } from "./single-source-analysis-deck";
 import type { AssistantSource } from "./source-shelf";
 
-export function SingleSourceAnalysisPanel({ source, result, pending, error, onRetry }: {
+export function SingleSourceAnalysisPanel({ source, result, pending, error, questions, questionPending, onRetry, onSubmitQuestion, onOpenQuestion, onDeleteQuestion }: {
   source: AssistantSource;
   result: TextAnalysisResult | null;
   pending: boolean;
   error: string | null;
+  questions: QuestionCard[];
+  questionPending: boolean;
   onRetry: () => void;
+  onSubmitQuestion: (message: string) => Promise<void>;
+  onOpenQuestion: (question: QuestionCard) => void;
+  onDeleteQuestion: (question: QuestionCard) => void;
 }) {
+  const items = useMemo(() => buildSingleSourceDeckItems(questions, source.id), [questions, source.id]);
   return (
-    <div className="single-source-panel">
+    <div className={`single-source-panel ${result ? "has-composer" : ""}`}>
       <header className="single-source-panel-header">
         <div>
           <p className="eyebrow">单份资料分析</p>
@@ -35,7 +46,23 @@ export function SingleSourceAnalysisPanel({ source, result, pending, error, onRe
           <button type="button" className="primary-button mt-5" onClick={onRetry}>重新分析</button>
         </div>
       ) : result ? (
-        <AnalysisResultCards result={result} sourceTitle={source.title} sourceText={source.sourceText} />
+        <>
+          <SingleSourceAnalysisDeck
+            items={items}
+            result={result}
+            sourceTitle={source.title}
+            sourceText={source.sourceText}
+            onOpenQuestion={onOpenQuestion}
+            onDeleteQuestion={onDeleteQuestion}
+          />
+          <QuestionComposer
+            selectedCount={1}
+            pending={questionPending}
+            canAsk
+            scopeLabel="仅分析当前资料"
+            onSubmit={onSubmitQuestion}
+          />
+        </>
       ) : (
         <div className="single-analysis-state">
           <p className="font-serif text-xl font-semibold text-ink">准备生成四项证据结论</p>

@@ -180,7 +180,12 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
             result={singleResult}
             pending={singlePending}
             error={singleError}
+            questions={questions}
+            questionPending={pending}
             onRetry={() => analyzeConfirmedSource(confirmedSources[0])}
+            onSubmitQuestion={submitQuestion}
+            onOpenQuestion={setActiveQuestion}
+            onDeleteQuestion={deleteQuestion}
           />
         ) : confirmedSources.length > 1 ? (
           <>

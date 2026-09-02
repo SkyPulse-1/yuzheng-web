@@ -150,8 +150,12 @@ button:disabled { cursor: not-allowed; }
   .question-workspace-title { @apply flex items-center justify-between gap-4 border-b border-outline/70 bg-surface/55 px-5 py-3 text-xs font-medium text-muted backdrop-blur-md sm:px-8; }
   .assistant-scope-empty { @apply m-5 flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[28px] border border-dashed border-outline bg-surface/55 px-6 text-center sm:m-8; }
   .single-source-panel { @apply min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-7 sm:px-8 sm:pt-9; }
+  .single-source-panel.has-composer { @apply pb-40; }
   .single-source-panel-header { @apply mx-auto mb-7 flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between; }
   .single-source-panel .analysis-card-grid { @apply mx-auto max-w-6xl; }
+  .analysis-deck-item { @apply min-w-0; }
+  .analysis-deck-item > .analysis-card, .analysis-deck-item > .question-card { @apply h-full; }
+  .analysis-deck-item > .question-card { @apply min-h-72; }
   .single-analysis-state { @apply mx-auto flex min-h-[360px] max-w-6xl flex-col items-center justify-center rounded-[26px] border border-outline bg-surface/65 px-6 text-center shadow-[0_18px_52px_rgba(49,42,31,0.05)]; }
   .single-analysis-pulse { @apply mb-5 h-3 w-3 rounded-full bg-primary shadow-[0_0_0_10px_rgba(32,43,91,0.08)]; animation: single-analysis-pulse 1.8s ease-in-out infinite; }
   .question-board { @apply min-h-0 flex-1 overflow-y-auto px-5 pb-40 pt-7 sm:px-8 sm:pt-9; }
