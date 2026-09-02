@@ -29,6 +29,7 @@
 - Modify: `src/components/assistant/single-source-analysis-deck.tsx`
 - Modify: `src/components/assistant/native-analysis-deck.tsx`
 - Modify: `src/lib/analysis-deck.ts`
+- Delete: `src/lib/view-transitions.ts`
 - Delete: `src/components/assistant/motion-analysis-deck.tsx`
 - Delete: `src/components/assistant/motion-mode-toggle.tsx`
 - Delete: `src/components/assistant/deck-motion-boundary.tsx`
@@ -83,7 +84,7 @@ onOpen={() => setOpenKey(item.sectionKey)}
 onOpen={() => onOpenQuestion(item.question)}
 ```
 
-Remove `motionMode`, `onMotionModeChange`, `activeItemId`, `deckTransitionName`, `runViewTransition`, the toggle markup, the Motion adapter, and the error boundary. Delete the three experiment-only component files and their toggle test. Run:
+Remove `motionMode`, `onMotionModeChange`, `activeItemId`, `deckTransitionName`, `runViewTransition`, the toggle markup, the Motion adapter, and the error boundary. Delete the three experiment-only component files, `src/lib/view-transitions.ts`, and the toggle test. Run:
 
 ```powershell
 npm uninstall motion
@@ -104,7 +105,7 @@ Expected: PASS; single-source mode still shows four fixed cards and a composer, 
 - [ ] **Step 5: Commit the single-mode cleanup**
 
 ```powershell
-git add package.json package-lock.json src/components/assistant src/lib/analysis-deck.ts tests/components
+git add package.json package-lock.json src/components/assistant src/lib/analysis-deck.ts src/lib/view-transitions.ts tests/components
 git commit -m "refactor: keep one native evidence card motion"
 ```
 
@@ -287,4 +288,3 @@ Use the existing analyzed source so no network analysis is required:
 git add src/app/globals.css DESIGN.md tests/components/dialog-transition.test.tsx
 git commit -m "style: polish formal evidence card transitions"
 ```
-
