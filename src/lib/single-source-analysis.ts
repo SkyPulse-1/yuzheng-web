@@ -1,4 +1,5 @@
 import {
+  ANALYSIS_SECTION_KEYS,
   hasReliableAnalysis,
   parseTextAnalysisResult,
   type TextAnalysisResult,
@@ -22,13 +23,38 @@ function buildFileAnalysisQuery(sourceName: string) {
   ].join("\n");
 }
 
+export function readStoredSingleSourceAnalysis(value: unknown): TextAnalysisResult | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const trustedCorpus = ANALYSIS_SECTION_KEYS.flatMap((key) => {
+    const items = record[key];
+    if (!Array.isArray(items)) return [];
+    return items.flatMap((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+      const sources = (item as Record<string, unknown>).sources;
+      if (!Array.isArray(sources)) return [];
+      return sources.flatMap((source) => {
+        if (!source || typeof source !== "object" || Array.isArray(source)) return [];
+        const excerpt = source as Record<string, unknown>;
+        const quote = typeof excerpt.quote === "string" ? excerpt.quote.trim() : "";
+        if (!quote) return [];
+        const before = typeof excerpt.context_before === "string" ? excerpt.context_before : "";
+        const after = typeof excerpt.context_after === "string" ? excerpt.context_after : "";
+        return [`${before}${quote}${after}`];
+      });
+    });
+  }).join("\n".repeat(120));
+  const result = parseTextAnalysisResult(value, trustedCorpus);
+  return hasReliableAnalysis(result) ? result : null;
+}
+
 export async function analyzeSingleSource(input: {
   userId: string;
   sourceKind: "FILE" | "TEXT";
   sourceName: string;
   sourceText: string | null;
   dependencies: SingleSourceAnalysisDependencies;
-}): Promise<{ result: TextAnalysisResult; contextText: string }> {
+}): Promise<{ result: TextAnalysisResult; contextText: string; status: "READY" | "PARTIAL" }> {
   if (input.sourceKind === "TEXT") {
     const sourceText = input.sourceText?.trim() ?? "";
     if (!sourceText) throw new Error("SOURCE_TEXT_MISSING");
@@ -40,7 +66,7 @@ export async function analyzeSingleSource(input: {
         analyze: async (request) => (await input.dependencies.analyze(request)).answer,
       },
     });
-    return { result: analyzed.result, contextText: sourceText };
+    return { result: analyzed.result, contextText: sourceText, status: analyzed.status };
   }
 
   const conversationId = await input.dependencies.createConversation(input.userId);
@@ -58,5 +84,5 @@ export async function analyzeSingleSource(input: {
   if (!contextText || !hasReliableAnalysis(result)) {
     throw new Error("SOURCE_ANALYSIS_NO_RELIABLE_RESULT");
   }
-  return { result, contextText };
+  return { result, contextText, status: "READY" as const };
 }
