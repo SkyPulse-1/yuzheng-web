@@ -68,9 +68,10 @@ function readExcerpt(value: unknown, source: string): SourceExcerpt | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
   const quote = typeof record.quote === "string" ? record.quote.trim() : "";
-  if (!quote || !source.includes(quote)) return null;
-  const contextBefore = typeof record.context_before === "string" ? record.context_before.trim() : "";
-  const contextAfter = typeof record.context_after === "string" ? record.context_after.trim() : "";
+  const quoteIndex = quote ? source.indexOf(quote) : -1;
+  if (!quote || quoteIndex < 0) return null;
+  const contextBefore = source.slice(Math.max(0, quoteIndex - 90), quoteIndex);
+  const contextAfter = source.slice(quoteIndex + quote.length, quoteIndex + quote.length + 90);
   return {
     quote,
     ...(contextBefore ? { context_before: contextBefore } : {}),

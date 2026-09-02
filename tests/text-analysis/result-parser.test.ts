@@ -58,4 +58,22 @@ describe("text analysis result parser", () => {
       uncertainties: [{ text: "合理缺失", sources: [], basis: "综合判断" }],
     });
   });
+
+  it("derives context from trusted source text instead of model-provided context", () => {
+    const result = parseTextAnalysisResult({
+      content_summary: [{
+        text: "可靠结论",
+        sources: [{ quote: "证据必须能够回到原文", context_before: "伪造上文", context_after: "伪造下文" }],
+      }],
+      key_points: [],
+      source_evidence: [],
+      uncertainties: [],
+    }, source);
+
+    expect(result.content_summary[0].sources[0]).toEqual({
+      quote: "证据必须能够回到原文",
+      context_before: "甲认为",
+      context_after: "。乙指出信息不足时应明确说明。",
+    });
+  });
 });
