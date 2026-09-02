@@ -26,12 +26,19 @@ export function QuestionDetailDialog({ question, onClose }: { question: Question
         aria-label="问题卡片详情"
       >
         <header className="analysis-dialog-header">
-          <div><p className="eyebrow">证据问答</p><h2 className="mt-2 max-w-4xl font-serif text-2xl font-semibold leading-9 text-ink">{question.question}</h2></div>
+          <div>
+            <p className="eyebrow">{question.sourceCount ? `基于 ${question.sourceCount} 份资料` : "整个知识库"}</p>
+            <h2 className="mt-2 max-w-4xl font-serif text-2xl font-semibold leading-9 text-ink">{question.question}</h2>
+          </div>
           <button ref={closeRef} type="button" className="secondary-button" onClick={requestClose}>关闭</button>
         </header>
         <div className="grid min-h-0 flex-1 gap-8 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_400px] lg:p-8">
-          <article><p className="field-label">分析结论</p><div className="mt-4 whitespace-pre-wrap text-base leading-8 text-ink-soft">{question.answer || question.error || "当前没有可显示的结论。"}</div></article>
-          <aside><div className="flex items-center justify-between"><p className="field-label">原文证据</p><span className="metadata-chip">{question.evidenceCount} 条</span></div>
+          <article>
+            <p className="eyebrow">分析结论</p>
+            <div className="mt-4 whitespace-pre-wrap text-base leading-8 text-ink-soft">{question.answer || question.error || "暂无结论。"}</div>
+          </article>
+          <aside>
+            <div className="flex items-center justify-between"><p className="eyebrow">原文证据</p><span className="metadata-chip">{question.evidenceCount} 条</span></div>
             <div className="mt-4 space-y-3">
               {question.evidenceCards.length ? question.evidenceCards.map((card, index) => (
                 <article key={card.card_id || index} className="evidence-detail-card">
@@ -40,7 +47,7 @@ export function QuestionDetailDialog({ question, onClose }: { question: Question
                   <blockquote className="mt-3 border-l-2 border-evidence-soft pl-3 text-sm leading-7 text-ink-soft">{card.evidence_text}</blockquote>
                   <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted"><span className="truncate">{card.document_name}{card.page_number ? ` · 第 ${card.page_number} 页` : ""}</span>{card.document_id ? <a className="font-semibold text-primary" href={`/api/documents/${card.document_id}/file${card.page_number ? `?page=${card.page_number}` : ""}`} target="_blank" rel="noreferrer">查看原文</a> : null}</div>
                 </article>
-              )) : <div className="source-context-placeholder">这次回答没有返回可核验的原文证据。</div>}
+              )) : <div className="source-context-placeholder">没有可核验的原文证据。</div>}
             </div>
           </aside>
         </div>
