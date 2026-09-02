@@ -21,7 +21,7 @@ export function QuestionCard({ question, onOpen, onDelete }: {
         event.currentTarget.style.setProperty("--glow-y", `${event.clientY - bounds.top}px`);
       }}
     >
-      <button type="button" className="block w-full text-left" onClick={onOpen} disabled={processing}>
+      <button type="button" className="flex h-full w-full flex-col text-left" onClick={onOpen} disabled={processing}>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="eyebrow">{processing ? "分析中" : failed ? "未完成" : "研究问题"}</p>
