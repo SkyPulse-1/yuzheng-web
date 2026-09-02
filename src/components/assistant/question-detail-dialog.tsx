@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import type { QuestionCard } from "../../lib/questions";
 
-export function QuestionDetailDialog({ question, onClose }: { question: QuestionCard; onClose: () => void }) {
+export function QuestionDetailDialog({ question, transitionName, onClose }: { question: QuestionCard; transitionName?: string; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -16,7 +16,7 @@ export function QuestionDetailDialog({ question, onClose }: { question: Question
 
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="question-dialog" role="dialog" aria-modal="true" aria-label="问题卡片详情">
+      <section className="question-dialog" role="dialog" aria-modal="true" aria-label="问题卡片详情" style={{ viewTransitionName: transitionName }}>
         <header className="analysis-dialog-header">
           <div><p className="eyebrow">证据问答</p><h2 className="mt-2 max-w-4xl font-serif text-2xl font-semibold leading-9 text-ink">{question.question}</h2></div>
           <button ref={closeRef} type="button" className="secondary-button" onClick={onClose}>关闭</button>

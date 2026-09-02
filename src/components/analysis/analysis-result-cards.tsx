@@ -62,7 +62,7 @@ export function AnalysisResultCards({ result, sourceTitle, sourceText }: {
 
   return (
     <div className="analysis-card-grid">
-      {ANALYSIS_SECTION_KEYS.map((key, index) => {
+      {ANALYSIS_SECTION_KEYS.map((key) => {
         const items = result[key];
         return (
           <AnalysisSectionCard key={key} sectionKey={key} items={items} onOpen={() => setOpenKey(key)} />

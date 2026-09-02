@@ -9,13 +9,14 @@ import { QuestionComposer } from "./question-composer";
 import { SingleSourceAnalysisDeck } from "./single-source-analysis-deck";
 import type { AssistantSource } from "./source-shelf";
 
-export function SingleSourceAnalysisPanel({ source, result, pending, error, questions, questionPending, onRetry, onSubmitQuestion, onOpenQuestion, onDeleteQuestion }: {
+export function SingleSourceAnalysisPanel({ source, result, pending, error, questions, questionPending, activeQuestionId, onRetry, onSubmitQuestion, onOpenQuestion, onDeleteQuestion }: {
   source: AssistantSource;
   result: TextAnalysisResult | null;
   pending: boolean;
   error: string | null;
   questions: QuestionCard[];
   questionPending: boolean;
+  activeQuestionId?: string | null;
   onRetry: () => void;
   onSubmitQuestion: (message: string) => Promise<void>;
   onOpenQuestion: (question: QuestionCard) => void;
@@ -52,6 +53,7 @@ export function SingleSourceAnalysisPanel({ source, result, pending, error, ques
             result={result}
             sourceTitle={source.title}
             sourceText={source.sourceText}
+            activeQuestionId={activeQuestionId}
             onOpenQuestion={onOpenQuestion}
             onDeleteQuestion={onDeleteQuestion}
           />

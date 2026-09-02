@@ -11,6 +11,7 @@ export function AnalysisDetailDialog({
   items,
   sourceTitle,
   sourceText,
+  transitionName,
   onClose,
 }: {
   open: boolean;
@@ -18,6 +19,7 @@ export function AnalysisDetailDialog({
   items: AnalysisItem[];
   sourceTitle: string;
   sourceText: string;
+  transitionName?: string;
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -41,7 +43,7 @@ export function AnalysisDetailDialog({
 
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="analysis-dialog" role="dialog" aria-modal="true" aria-label={`${title}详情`}>
+      <section className="analysis-dialog" role="dialog" aria-modal="true" aria-label={`${title}详情`} style={{ viewTransitionName: transitionName }}>
         <header className="analysis-dialog-header">
           <div>
             <p className="eyebrow">{sourceTitle}</p>

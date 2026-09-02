@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { TextAnalysisResult } from "../../lib/analysis-results";
 import type { QuestionCard } from "../../lib/questions";
+import { deckTransitionName, runViewTransition } from "../../lib/view-transitions";
 import { QuestionBoard } from "./question-board";
 import { QuestionComposer } from "./question-composer";
 import { QuestionDetailDialog } from "./question-detail-dialog";
@@ -182,6 +183,7 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
             error={singleError}
             questions={questions}
             questionPending={pending}
+            activeQuestionId={activeQuestion?.id ?? null}
             onRetry={() => analyzeConfirmedSource(confirmedSources[0])}
             onSubmitQuestion={submitQuestion}
             onOpenQuestion={setActiveQuestion}
@@ -208,7 +210,7 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
           </div>
         )}
       </section>
-      {activeQuestion ? <QuestionDetailDialog question={activeQuestion} onClose={() => setActiveQuestion(null)} /> : null}
+      {activeQuestion ? <QuestionDetailDialog question={activeQuestion} transitionName={deckTransitionName(`question:${activeQuestion.id}`)} onClose={() => runViewTransition(() => setActiveQuestion(null))} /> : null}
     </div>
   );
 }

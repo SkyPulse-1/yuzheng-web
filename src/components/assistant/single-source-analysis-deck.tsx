@@ -7,24 +7,15 @@ import { ANALYSIS_SECTION_META, AnalysisSectionCard } from "../analysis/analysis
 import type { AnalysisDeckItem } from "../../lib/analysis-deck";
 import type { AnalysisSectionKey, TextAnalysisResult } from "../../lib/analysis-results";
 import type { QuestionCard as QuestionCardData } from "../../lib/questions";
+import { deckTransitionName, runViewTransition } from "../../lib/view-transitions";
+import { NativeAnalysisDeck } from "./native-analysis-deck";
 import { QuestionCard } from "./question-card";
 
 export type DeckAdapterProps = {
   items: AnalysisDeckItem[];
   renderItem: (item: AnalysisDeckItem) => ReactNode;
+  activeItemId?: string | null;
 };
-
-function StaticAnalysisDeck({ items, renderItem }: DeckAdapterProps) {
-  return (
-    <div className="analysis-card-grid">
-      {items.map((item) => (
-        <div key={item.id} className="analysis-deck-item" data-testid="analysis-deck-item" data-deck-item-id={item.id}>
-          {renderItem(item)}
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function SingleSourceAnalysisDeck({
   items,
@@ -33,7 +24,8 @@ export function SingleSourceAnalysisDeck({
   sourceText,
   onOpenQuestion,
   onDeleteQuestion,
-  adapter: Adapter = StaticAnalysisDeck,
+  activeQuestionId,
+  adapter: Adapter = NativeAnalysisDeck,
 }: {
   items: AnalysisDeckItem[];
   result: TextAnalysisResult;
@@ -41,22 +33,24 @@ export function SingleSourceAnalysisDeck({
   sourceText: string;
   onOpenQuestion: (question: QuestionCardData) => void;
   onDeleteQuestion: (question: QuestionCardData) => void;
+  activeQuestionId?: string | null;
   adapter?: ComponentType<DeckAdapterProps>;
 }) {
   const [openKey, setOpenKey] = useState<AnalysisSectionKey | null>(null);
+  const activeItemId = openKey ? `section:${openKey}` : activeQuestionId ? `question:${activeQuestionId}` : null;
 
   return (
     <>
-      <Adapter items={items} renderItem={(item) => item.kind === "section" ? (
+      <Adapter activeItemId={activeItemId} items={items} renderItem={(item) => item.kind === "section" ? (
         <AnalysisSectionCard
           sectionKey={item.sectionKey}
           items={result[item.sectionKey]}
-          onOpen={() => setOpenKey(item.sectionKey)}
+          onOpen={() => runViewTransition(() => setOpenKey(item.sectionKey))}
         />
       ) : (
         <QuestionCard
           question={item.question}
-          onOpen={() => onOpenQuestion(item.question)}
+          onOpen={() => runViewTransition(() => onOpenQuestion(item.question))}
           onDelete={() => onDeleteQuestion(item.question)}
         />
       )} />
@@ -68,7 +62,8 @@ export function SingleSourceAnalysisDeck({
           items={result[openKey]}
           sourceTitle={sourceTitle}
           sourceText={sourceText}
-          onClose={() => setOpenKey(null)}
+          transitionName={deckTransitionName(`section:${openKey}`)}
+          onClose={() => runViewTransition(() => setOpenKey(null))}
         />
       ) : null}
     </>

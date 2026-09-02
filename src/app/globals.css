@@ -154,6 +154,8 @@ button:disabled { cursor: not-allowed; }
   .single-source-panel-header { @apply mx-auto mb-7 flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between; }
   .single-source-panel .analysis-card-grid { @apply mx-auto max-w-6xl; }
   .analysis-deck-item { @apply min-w-0; }
+  .analysis-deck-item.is-new-card { @apply relative; }
+  .analysis-deck-item.is-new-card::after { content: ""; position: absolute; inset: -1px; z-index: 4; pointer-events: none; border-radius: 19px; border: 1px solid rgba(154,106,31,.48); animation: new-card-edge 720ms cubic-bezier(.2,.78,.2,1) both; }
   .analysis-deck-item > .analysis-card, .analysis-deck-item > .question-card { @apply h-full; }
   .analysis-deck-item > .question-card { @apply min-h-72; }
   .single-analysis-state { @apply mx-auto flex min-h-[360px] max-w-6xl flex-col items-center justify-center rounded-[26px] border border-outline bg-surface/65 px-6 text-center shadow-[0_18px_52px_rgba(49,42,31,0.05)]; }
@@ -735,6 +737,13 @@ button:disabled { cursor: not-allowed; }
 @keyframes veil-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes dossier-in { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes single-analysis-pulse { 0%,100% { transform: scale(.82); opacity: .62; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes new-card-edge { 0% { opacity: 0; box-shadow: 0 0 0 rgba(154,106,31,0); } 35% { opacity: 1; box-shadow: 0 0 28px rgba(154,106,31,.18); } 100% { opacity: 0; box-shadow: 0 0 0 rgba(154,106,31,0); } }
+
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; }
+::view-transition-group(*) { animation-duration: 520ms; animation-timing-function: cubic-bezier(.2,.78,.2,1); }
+::view-transition-old(analysis-detail) { animation: dossier-out 420ms cubic-bezier(.4,0,.2,1) both; }
+::view-transition-new(analysis-detail) { animation: dossier-in 520ms cubic-bezier(.2,.78,.2,1) both; }
+@keyframes dossier-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.985); } }
 @keyframes research-workspace-in {
   from { opacity: 0; transform: translateY(9px) scale(.992); filter: blur(3px); }
   to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
