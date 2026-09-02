@@ -74,6 +74,30 @@ describe("detail dialog transitions", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it("closes a question dialog from the backdrop without unmounting it early", () => {
+    vi.useFakeTimers();
+    stubMotionPreference(false);
+    const onClose = vi.fn();
+    const view = render(<QuestionDetailDialog question={question} onClose={onClose} />);
+    const backdrop = view.container.querySelector(".dialog-backdrop");
+
+    expect(backdrop).toBeTruthy();
+    fireEvent.mouseDown(backdrop!);
+    expect(screen.getByRole("dialog").getAttribute("data-state")).toBe("closing");
+    expect(onClose).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(220);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("does not lock body scrolling while an analysis dialog is closed", () => {
+    stubMotionPreference(false);
+    document.body.style.overflow = "auto";
+
+    render(<AnalysisDetailDialog open={false} title="内容摘要" items={[]} sourceTitle="资料" sourceText="" onClose={vi.fn()} />);
+
+    expect(document.body.style.overflow).toBe("auto");
+  });
+
   it("closes synchronously when reduced motion is enabled", () => {
     stubMotionPreference(true);
     const onClose = vi.fn();

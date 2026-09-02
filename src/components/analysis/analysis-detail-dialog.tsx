@@ -23,7 +23,7 @@ export function AnalysisDetailDialog({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [activeExcerpt, setActiveExcerpt] = useState<SourceExcerpt | null>(null);
-  const { closing, requestClose } = useDialogTransition(onClose);
+  const { closing, requestClose } = useDialogTransition(onClose, open);
 
   useEffect(() => {
     if (!open) return;

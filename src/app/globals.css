@@ -123,8 +123,13 @@ button:disabled { cursor: not-allowed; }
   .glass-hover-card:hover { transform: translateY(-3px) scale(1.016); border-color: rgba(32,43,91,.34); box-shadow: 0 18px 48px rgba(32,43,91,.1); }
   .glass-hover-card:hover::before { opacity: 1; }
 
-  .dialog-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-[#17191f]/55 p-3 backdrop-blur-[6px] sm:p-6; animation: veil-in 180ms ease both; }
-  .analysis-dialog, .question-dialog { @apply flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[24px] border border-white/50 bg-surface shadow-[0_40px_120px_rgba(13,17,35,0.34)]; animation: dossier-in 240ms cubic-bezier(.2,.8,.2,1) both; }
+  .dialog-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-[#17191f]/55 p-3 backdrop-blur-[6px] sm:p-6; }
+  .dialog-backdrop[data-state="open"] { animation: veil-in 160ms ease-out both; }
+  .dialog-backdrop[data-state="closing"] { animation: veil-out 200ms ease-in both; }
+  .analysis-dialog, .question-dialog { @apply flex max-h-[94vh] w-full flex-col overflow-hidden rounded-[24px] border border-white/50 bg-surface shadow-[0_40px_120px_rgba(13,17,35,0.34)]; }
+  .dialog-surface { transform-origin: center; will-change: transform, opacity; }
+  .dialog-surface[data-state="open"] { animation: dialog-settle 240ms cubic-bezier(.2,.78,.2,1) both; }
+  .dialog-surface[data-state="closing"] { pointer-events: none; animation: dialog-leave 200ms cubic-bezier(.4,0,1,1) both; }
   .analysis-dialog { @apply fixed inset-0 max-w-none rounded-none; width: 100vw; height: 100dvh; max-height: none; }
   .question-dialog { @apply max-w-7xl; }
   .analysis-dialog-header { @apply flex items-start justify-between gap-5 border-b border-outline bg-surface/90 px-5 py-5 backdrop-blur-xl sm:px-7; }
@@ -152,10 +157,6 @@ button:disabled { cursor: not-allowed; }
   .single-source-panel { @apply min-h-0 flex-1 overflow-y-auto px-5 pb-10 pt-7 sm:px-8 sm:pt-9; }
   .single-source-panel.has-composer { @apply pb-40; }
   .single-source-panel-header { @apply mx-auto mb-7 flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:justify-between; }
-  .motion-mode-toggle { @apply inline-flex rounded-xl border border-outline bg-surface/70 p-1 shadow-[0_6px_18px_rgba(49,42,31,0.04)]; }
-  .motion-mode-toggle button { @apply rounded-lg px-3 py-1.5 text-xs font-semibold text-muted transition duration-200; }
-  .motion-mode-toggle button[aria-pressed="true"] { @apply bg-primary text-white shadow-[0_5px_14px_rgba(32,43,91,0.2)]; }
-  .is-motion-dialog { animation: veil-in 320ms ease both; }
   .single-source-panel .analysis-card-grid { @apply mx-auto max-w-6xl; }
   .analysis-deck-item { @apply min-w-0; }
   .analysis-deck-item.is-new-card { @apply relative; }
@@ -739,15 +740,12 @@ button:disabled { cursor: not-allowed; }
 @keyframes card-in { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes quiet-shimmer { 0%,100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
 @keyframes veil-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes dossier-in { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes veil-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dialog-settle { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes dialog-leave { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(6px) scale(.992); } }
 @keyframes single-analysis-pulse { 0%,100% { transform: scale(.82); opacity: .62; } 50% { transform: scale(1.08); opacity: 1; } }
 @keyframes new-card-edge { 0% { opacity: 0; box-shadow: 0 0 0 rgba(154,106,31,0); } 35% { opacity: 1; box-shadow: 0 0 28px rgba(154,106,31,.18); } 100% { opacity: 0; box-shadow: 0 0 0 rgba(154,106,31,0); } }
 
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; }
-::view-transition-group(*) { animation-duration: 520ms; animation-timing-function: cubic-bezier(.2,.78,.2,1); }
-::view-transition-old(analysis-detail) { animation: dossier-out 420ms cubic-bezier(.4,0,.2,1) both; }
-::view-transition-new(analysis-detail) { animation: dossier-in 520ms cubic-bezier(.2,.78,.2,1) both; }
-@keyframes dossier-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.985); } }
 @keyframes research-workspace-in {
   from { opacity: 0; transform: translateY(9px) scale(.992); filter: blur(3px); }
   to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
@@ -758,6 +756,7 @@ button:disabled { cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .dialog-backdrop, .dialog-surface { transform: none !important; filter: none !important; }
 }
 
 @media (max-width: 1023px) {
