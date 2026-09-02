@@ -3,9 +3,7 @@
 import { useState } from "react";
 
 import type { TextAnalysisResult } from "../../lib/analysis-results";
-import type { MotionMode } from "../../lib/analysis-deck";
 import type { QuestionCard } from "../../lib/questions";
-import { deckTransitionName, runViewTransition } from "../../lib/view-transitions";
 import { QuestionBoard } from "./question-board";
 import { QuestionComposer } from "./question-composer";
 import { QuestionDetailDialog } from "./question-detail-dialog";
@@ -24,7 +22,6 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
   const [singleResult, setSingleResult] = useState<TextAnalysisResult | null>(null);
   const [singleError, setSingleError] = useState<string | null>(null);
   const [singlePending, setSinglePending] = useState(false);
-  const [motionMode, setMotionMode] = useState<MotionMode>("native");
   const [questions, setQuestions] = useState(initialQuestions);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [searchQuery, setSearchQuery] = useState("");
@@ -185,9 +182,6 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
             error={singleError}
             questions={questions}
             questionPending={pending}
-            activeQuestionId={activeQuestion?.id ?? null}
-            motionMode={motionMode}
-            onMotionModeChange={setMotionMode}
             onRetry={() => analyzeConfirmedSource(confirmedSources[0])}
             onSubmitQuestion={submitQuestion}
             onOpenQuestion={setActiveQuestion}
@@ -214,7 +208,7 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
           </div>
         )}
       </section>
-      {activeQuestion ? <QuestionDetailDialog question={activeQuestion} animationMode={motionMode} transitionName={deckTransitionName(`question:${activeQuestion.id}`)} onClose={() => motionMode === "native" ? runViewTransition(() => setActiveQuestion(null)) : setActiveQuestion(null)} /> : null}
+      {activeQuestion ? <QuestionDetailDialog question={activeQuestion} onClose={() => setActiveQuestion(null)} /> : null}
     </div>
   );
 }

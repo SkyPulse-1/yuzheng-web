@@ -1,51 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef } from "react";
 
-import type { MotionMode } from "../../lib/analysis-deck";
 import type { QuestionCard } from "../../lib/questions";
 
-export function QuestionDetailDialog({ question, animationMode = "native", transitionName, onClose }: { question: QuestionCard; animationMode?: MotionMode; transitionName?: string; onClose: () => void }) {
+export function QuestionDetailDialog({ question, onClose }: { question: QuestionCard; onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const closeTimerRef = useRef<number | null>(null);
-  const closingRef = useRef(false);
-  const [closing, setClosing] = useState(false);
-  const reduceMotion = useReducedMotion();
-  const requestClose = useCallback(() => {
-    if (closingRef.current) return;
-    if (animationMode !== "motion" || reduceMotion) {
-      onClose();
-      return;
-    }
-    closingRef.current = true;
-    setClosing(true);
-    closeTimerRef.current = window.setTimeout(onClose, 240);
-  }, [animationMode, onClose, reduceMotion]);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    function keydown(event: KeyboardEvent) { if (event.key === "Escape") requestClose(); }
+    function keydown(event: KeyboardEvent) { if (event.key === "Escape") onClose(); }
     document.addEventListener("keydown", keydown);
-    return () => { document.removeEventListener("keydown", keydown); if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current); previous?.focus(); };
-  }, [requestClose]);
+    return () => { document.removeEventListener("keydown", keydown); previous?.focus(); };
+  }, [onClose]);
 
   return (
-    <div className={`dialog-backdrop ${animationMode === "motion" ? "is-motion-dialog" : ""}`} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
-      <motion.section
-        layoutId={animationMode === "motion" && !reduceMotion ? transitionName : undefined}
-        initial={animationMode === "motion" && !reduceMotion ? { opacity: 0, scale: .985, y: 12 } : false}
-        animate={animationMode === "motion" && !reduceMotion ? (closing ? { opacity: 0, scale: .985, y: 10 } : { opacity: 1, scale: 1, y: 0 }) : undefined}
-        transition={{ duration: closing ? .22 : .42, ease: [.2, .78, .2, 1] }}
+    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section
         className="question-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="问题卡片详情"
-        style={{ viewTransitionName: transitionName }}
       >
         <header className="analysis-dialog-header">
           <div><p className="eyebrow">证据问答</p><h2 className="mt-2 max-w-4xl font-serif text-2xl font-semibold leading-9 text-ink">{question.question}</h2></div>
-          <button ref={closeRef} type="button" className="secondary-button" onClick={requestClose}>关闭</button>
+          <button ref={closeRef} type="button" className="secondary-button" onClick={onClose}>关闭</button>
         </header>
         <div className="grid min-h-0 flex-1 gap-8 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_400px] lg:p-8">
           <article><p className="field-label">分析结论</p><div className="mt-4 whitespace-pre-wrap text-base leading-8 text-ink-soft">{question.answer || question.error || "当前没有可显示的结论。"}</div></article>
@@ -62,7 +41,7 @@ export function QuestionDetailDialog({ question, animationMode = "native", trans
             </div>
           </aside>
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 }

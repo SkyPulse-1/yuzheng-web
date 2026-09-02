@@ -47,6 +47,7 @@ describe("NativeAnalysisDeck", () => {
       "section:content_summary",
       "section:key_points",
     ]);
+    expect(screen.getAllByTestId("analysis-deck-item")[0].style.viewTransitionName).toBe("");
     expect(animate).toHaveBeenCalled();
   });
 

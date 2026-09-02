@@ -119,12 +119,9 @@ describe("AssistantWorkspace", () => {
     expect(screen.getByText("原文依据")).toBeTruthy();
     expect(screen.getByText("信息不足与歧义")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "分析需求" })).toBeTruthy();
-
-    await user.type(screen.getByRole("textbox", { name: "分析需求" }), "切换时保留这段文字");
-    await user.click(screen.getByRole("button", { name: "B Motion" }));
-    expect((screen.getByRole("textbox", { name: "分析需求" }) as HTMLTextAreaElement).value).toBe("切换时保留这段文字");
+    expect(screen.queryByRole("button", { name: "A 原生" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "B Motion" })).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    await user.clear(screen.getByRole("textbox", { name: "分析需求" }));
 
     await user.type(screen.getByRole("textbox", { name: "分析需求" }), "核对作者的主要判断");
     await user.click(screen.getByRole("button", { name: "开始分析" }));

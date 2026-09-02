@@ -1,8 +1,6 @@
 import type { AnalysisSectionKey } from "./analysis-results";
 import type { QuestionCard } from "./questions";
 
-export type MotionMode = "native" | "motion";
-
 export type AnalysisDeckItem =
   | { id: `section:${AnalysisSectionKey}`; kind: "section"; sectionKey: AnalysisSectionKey }
   | { id: `question:${string}`; kind: "question"; question: QuestionCard };

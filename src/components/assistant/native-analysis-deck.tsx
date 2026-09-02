@@ -2,12 +2,11 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-import { deckTransitionName } from "../../lib/view-transitions";
 import type { DeckAdapterProps } from "./single-source-analysis-deck";
 
 const MOVE_DURATION = 520;
 
-export function NativeAnalysisDeck({ items, renderItem, activeItemId }: DeckAdapterProps) {
+export function NativeAnalysisDeck({ items, renderItem }: DeckAdapterProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const previousRects = useRef(new Map<string, DOMRect>());
 
@@ -58,7 +57,6 @@ export function NativeAnalysisDeck({ items, renderItem, activeItemId }: DeckAdap
           className="analysis-deck-item"
           data-testid="analysis-deck-item"
           data-deck-item-id={item.id}
-          style={{ viewTransitionName: activeItemId === item.id ? "none" : deckTransitionName(item.id) }}
         >
           {renderItem(item)}
         </div>
