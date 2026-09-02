@@ -2,14 +2,15 @@
 
 import { useMemo } from "react";
 
-import { buildSingleSourceDeckItems } from "../../lib/analysis-deck";
+import { buildSingleSourceDeckItems, type MotionMode } from "../../lib/analysis-deck";
 import type { TextAnalysisResult } from "../../lib/analysis-results";
 import type { QuestionCard } from "../../lib/questions";
 import { QuestionComposer } from "./question-composer";
+import { MotionModeToggle } from "./motion-mode-toggle";
 import { SingleSourceAnalysisDeck } from "./single-source-analysis-deck";
 import type { AssistantSource } from "./source-shelf";
 
-export function SingleSourceAnalysisPanel({ source, result, pending, error, questions, questionPending, activeQuestionId, onRetry, onSubmitQuestion, onOpenQuestion, onDeleteQuestion }: {
+export function SingleSourceAnalysisPanel({ source, result, pending, error, questions, questionPending, activeQuestionId, motionMode, onMotionModeChange, onRetry, onSubmitQuestion, onOpenQuestion, onDeleteQuestion }: {
   source: AssistantSource;
   result: TextAnalysisResult | null;
   pending: boolean;
@@ -17,6 +18,8 @@ export function SingleSourceAnalysisPanel({ source, result, pending, error, ques
   questions: QuestionCard[];
   questionPending: boolean;
   activeQuestionId?: string | null;
+  motionMode: MotionMode;
+  onMotionModeChange: (mode: MotionMode) => void;
   onRetry: () => void;
   onSubmitQuestion: (message: string) => Promise<void>;
   onOpenQuestion: (question: QuestionCard) => void;
@@ -31,7 +34,10 @@ export function SingleSourceAnalysisPanel({ source, result, pending, error, ques
           <h1 className="mt-2 font-serif text-3xl font-semibold text-ink">四项证据结论</h1>
           <p className="mt-2 text-sm text-muted">当前资料：{source.title}</p>
         </div>
-        <span className="metadata-chip">已确认 1 份资料</span>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <MotionModeToggle value={motionMode} onChange={onMotionModeChange} />
+          <span className="metadata-chip">已确认 1 份资料</span>
+        </div>
       </header>
 
       {pending ? (
@@ -54,6 +60,7 @@ export function SingleSourceAnalysisPanel({ source, result, pending, error, ques
             sourceTitle={source.title}
             sourceText={source.sourceText}
             activeQuestionId={activeQuestionId}
+            motionMode={motionMode}
             onOpenQuestion={onOpenQuestion}
             onDeleteQuestion={onDeleteQuestion}
           />

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { SourceContextPopover } from "./source-context-popover";
+import type { MotionMode } from "../../lib/analysis-deck";
 import type { AnalysisItem, SourceExcerpt } from "../../lib/analysis-results";
 
 export function AnalysisDetailDialog({
@@ -11,6 +13,7 @@ export function AnalysisDetailDialog({
   items,
   sourceTitle,
   sourceText,
+  animationMode = "native",
   transitionName,
   onClose,
 }: {
@@ -19,37 +22,63 @@ export function AnalysisDetailDialog({
   items: AnalysisItem[];
   sourceTitle: string;
   sourceText: string;
+  animationMode?: MotionMode;
   transitionName?: string;
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const closingRef = useRef(false);
   const [activeExcerpt, setActiveExcerpt] = useState<SourceExcerpt | null>(null);
+  const [closing, setClosing] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return;
+    if (animationMode !== "motion" || reduceMotion) {
+      onClose();
+      return;
+    }
+    closingRef.current = true;
+    setClosing(true);
+    closeTimerRef.current = window.setTimeout(onClose, 240);
+  }, [animationMode, onClose, reduceMotion]);
 
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") requestClose();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
       previous?.focus();
     };
-  }, [onClose, open]);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="analysis-dialog" role="dialog" aria-modal="true" aria-label={`${title}详情`} style={{ viewTransitionName: transitionName }}>
+    <div className={`dialog-backdrop ${animationMode === "motion" ? "is-motion-dialog" : ""}`} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
+      <motion.section
+        layoutId={animationMode === "motion" && !reduceMotion ? transitionName : undefined}
+        initial={animationMode === "motion" && !reduceMotion ? { opacity: 0, scale: .985, y: 12 } : false}
+        animate={animationMode === "motion" && !reduceMotion ? (closing ? { opacity: 0, scale: .985, y: 10 } : { opacity: 1, scale: 1, y: 0 }) : undefined}
+        transition={{ duration: closing ? .22 : .42, ease: [.2, .78, .2, 1] }}
+        className="analysis-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${title}详情`}
+        style={{ viewTransitionName: transitionName }}
+      >
         <header className="analysis-dialog-header">
           <div>
             <p className="eyebrow">{sourceTitle}</p>
             <h2 className="mt-2 font-serif text-2xl font-semibold text-ink">{title}</h2>
           </div>
-          <button ref={closeRef} type="button" onClick={onClose} className="secondary-button">关闭</button>
+          <button ref={closeRef} type="button" onClick={requestClose} className="secondary-button">关闭</button>
         </header>
 
         <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-8">
@@ -98,7 +127,7 @@ export function AnalysisDetailDialog({
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }
