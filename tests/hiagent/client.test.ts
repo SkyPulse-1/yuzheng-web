@@ -12,6 +12,7 @@ describe("HiAgent conversational client", () => {
   beforeEach(() => {
     vi.stubEnv("HIAGENT_BASE_URL", "https://school.example/api/proxy/api/v1");
     vi.stubEnv("HIAGENT_API_KEY", "server-only-test-key");
+    vi.stubEnv("HIAGENT_APP_ID", "test-app-id");
     vi.stubEnv("HIAGENT_TRUSTED_FILTERS_ENABLED", "true");
   });
 
@@ -37,8 +38,8 @@ describe("HiAgent conversational client", () => {
     await expect(createHiAgentConversation({ userId: "user-1" })).resolves.toBe("remote-conversation-1");
     const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://school.example/api/proxy/api/v1/create_conversation");
-    expect(request.headers).toMatchObject({ ApiKey: "server-only-test-key" });
-    expect(JSON.parse(String(request.body))).toEqual({ UserID: "user-1" });
+    expect(request.headers).toMatchObject({ Apikey: "server-only-test-key" });
+    expect(JSON.parse(String(request.body))).toEqual({ AppKey: "test-app-id", UserID: "user-1" });
   });
 
   it("sends a query using the existing conversation and aggregates message events", async () => {
@@ -65,6 +66,7 @@ describe("HiAgent conversational client", () => {
     const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://school.example/api/proxy/api/v1/chat_query_v2");
     expect(JSON.parse(String(request.body))).toEqual({
+      AppKey: "test-app-id",
       UserID: "user-1",
       AppConversationID: "remote-conversation-1",
       Query: "请总结",

@@ -19,10 +19,12 @@ export type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };
 function getTransportConfig() {
   const baseUrl = process.env.HIAGENT_BASE_URL?.replace(/\/$/, "");
   const apiKey = process.env.HIAGENT_API_KEY?.trim();
-  if (!baseUrl || !apiKey) return null;
+  const appKey = process.env.HIAGENT_APP_ID?.trim();
+  if (!baseUrl || !apiKey || !appKey) return null;
   return {
     baseUrl,
     apiKey,
+    appKey,
     createConversationPath: process.env.HIAGENT_CREATE_CONVERSATION_PATH?.trim() || "/create_conversation",
     chatPath: process.env.HIAGENT_CHAT_PATH?.trim() || "/chat_query_v2",
   };
@@ -114,7 +116,7 @@ export function parseHiAgentSse(text: string): HiAgentResult {
 }
 
 function requestHeaders(apiKey: string) {
-  return { "Content-Type": "application/json", ApiKey: apiKey };
+  return { "Content-Type": "application/json", Apikey: apiKey };
 }
 
 export async function createHiAgentConversation(input: { userId: string; inputs?: Record<string, unknown> }): Promise<string> {
@@ -123,7 +125,11 @@ export async function createHiAgentConversation(input: { userId: string; inputs?
   const response = await fetch(`${config.baseUrl}${config.createConversationPath}`, {
     method: "POST",
     headers: requestHeaders(config.apiKey),
-    body: JSON.stringify(input.inputs ? { UserID: input.userId, Inputs: input.inputs } : { UserID: input.userId }),
+    body: JSON.stringify(
+      input.inputs
+        ? { AppKey: config.appKey, UserID: input.userId, Inputs: input.inputs }
+        : { AppKey: config.appKey, UserID: input.userId },
+    ),
     signal: AbortSignal.timeout(60000),
     cache: "no-store",
   });
@@ -151,6 +157,7 @@ export async function chatWithHiAgent(input: {
     method: "POST",
     headers: requestHeaders(config.apiKey),
     body: JSON.stringify({
+      AppKey: config.appKey,
       UserID: input.userId,
       AppConversationID: input.conversationId,
       Query: input.query,
