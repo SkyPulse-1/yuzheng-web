@@ -4,6 +4,7 @@ import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAg
 import { filterAssistantSources } from "@/lib/assistant-sources";
 import { attachUniqueDocumentIds } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 type ChatBody = { libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
 
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
   if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const body = await request.json().catch(() => null) as ChatBody | null;
   const libraryId = typeof body?.libraryId === "string" ? body.libraryId : "";
@@ -95,9 +97,10 @@ export async function POST(request: Request) {
 
   const textDocumentIds = textDocuments.map((document) => document.id);
   if (textDocumentIds.length) {
-    const { error: lockError } = await supabase
+    const { error: lockError } = await service
       .from("documents")
       .update({ analysis_started_at: new Date().toISOString() })
+      .eq("owner_id", user.id)
       .in("id", textDocumentIds)
       .is("analysis_started_at", null);
     if (lockError) {

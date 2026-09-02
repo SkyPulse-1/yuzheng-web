@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function DELETE(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const user = auth.user;
+  if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id } = await context.params;
   const { data: document, error: readError } = await supabase
@@ -22,14 +25,15 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (document.deleted_at) return NextResponse.json({ deleted: true });
   const deletedAt = new Date();
   const purgeAfter = new Date(deletedAt.getTime() + 30 * 86_400_000);
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await service
     .from("documents")
     .update({
       deleted_at: deletedAt.toISOString(),
       purge_after: purgeAfter.toISOString(),
       error_message: null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_id", user.id);
   if (deleteError) return NextResponse.json({ error: "暂时无法移入回收站，请稍后重试。" }, { status: 500 });
   return NextResponse.json({ deleted: true, purgeAfter: purgeAfter.toISOString() });
 }

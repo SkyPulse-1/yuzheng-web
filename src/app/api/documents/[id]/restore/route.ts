@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const user = auth.user;
+  if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id } = await context.params;
   const { data: document } = await supabase
@@ -23,10 +26,11 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   const status = ["READY", "PARTIAL"].includes(document.analysis_status) ? "READY" : "STORED";
-  const { error } = await supabase
+  const { error } = await service
     .from("documents")
     .update({ deleted_at: null, purge_after: null, status })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_id", user.id);
   if (error) return NextResponse.json({ error: "恢复失败，请稍后重试。" }, { status: 500 });
   return NextResponse.json({ restored: true });
 }

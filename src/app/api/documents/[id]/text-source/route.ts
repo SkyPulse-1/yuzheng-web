@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { validateTextSourceInput } from "@/lib/text-sources";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -8,7 +9,9 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const user = auth.user;
+  if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const body = await request.json().catch(() => null);
   const validation = validateTextSourceInput(body);
@@ -27,7 +30,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const { title, content } = validation.data;
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await service
     .from("documents")
     .update({
       original_name: title,
@@ -35,6 +38,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       size_bytes: new TextEncoder().encode(content).byteLength,
     })
     .eq("id", id)
+    .eq("owner_id", user.id)
     .select("id, original_name, text_content, analysis_status, analysis_started_at, updated_at")
     .single();
   if (error || !updated) return NextResponse.json({ error: "文字资料更新失败，请稍后重试。" }, { status: 500 });

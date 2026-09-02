@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { validateDocumentMetadata } from "@/lib/documents";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { buildStoragePath } from "@/lib/uploads/paths";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -32,6 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
   if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id: libraryId } = await context.params;
   const { data: library } = await supabase.from("libraries").select("id").eq("id", libraryId).maybeSingle();
@@ -57,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
     status: "UPLOADING",
   };
 
-  const { data, error: insertError } = await supabase
+  const { data, error: insertError } = await service
     .from("documents")
     .insert(baseRecord)
     .select("id, owner_id, library_id, original_name, mime_type, size_bytes, storage_path, kb_document_id, status, error_message, page_count, created_at, updated_at")

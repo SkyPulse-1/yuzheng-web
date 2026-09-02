@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { splitStoragePath } from "@/lib/uploads/paths";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -10,6 +11,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
   if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id } = await context.params;
   const { data: document, error } = await supabase
@@ -26,10 +28,11 @@ export async function POST(request: Request, context: RouteContext) {
     if (document.status !== "UPLOADING") {
       return NextResponse.json({ error: "当前文档状态不能标记为上传失败。" }, { status: 409 });
     }
-    const { data: failed } = await supabase
+    const { data: failed } = await service
       .from("documents")
       .update({ status: "FAILED", error_message: "文件上传中断，请重新上传。" })
       .eq("id", id)
+      .eq("owner_id", user.id)
       .select("id, status, error_message, updated_at")
       .single();
     return NextResponse.json({ document: failed });
@@ -51,10 +54,11 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "文件上传尚未完成，请稍后重试。" }, { status: 409 });
   }
 
-  const { data: updated, error: updateError } = await supabase
+  const { data: updated, error: updateError } = await service
     .from("documents")
     .update({ status: "STORED", error_message: "文件已保存，学校文档处理服务尚未接通。" })
     .eq("id", id)
+    .eq("owner_id", user.id)
     .select("id, status, error_message, updated_at")
     .single();
   if (updateError) return NextResponse.json({ error: "文件已保存，但状态更新失败，请刷新页面。" }, { status: 500 });

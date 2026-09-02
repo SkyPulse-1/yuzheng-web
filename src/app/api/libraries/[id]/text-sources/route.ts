@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { validateTextSourceInput } from "@/lib/text-sources";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -9,6 +10,7 @@ export async function POST(request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id: libraryId } = await context.params;
   const body = await request.json().catch(() => null);
@@ -23,7 +25,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (!library) return NextResponse.json({ error: "知识库不存在。" }, { status: 404 });
 
   const { title, content } = validation.data;
-  const { data: document, error } = await supabase
+  const { data: document, error } = await service
     .from("documents")
     .insert({
       owner_id: auth.user.id,

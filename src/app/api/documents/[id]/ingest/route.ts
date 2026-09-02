@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { addVikingDocument } from "@/lib/vikingdb/client";
 import { isVikingConfigured } from "@/lib/vikingdb/config";
 
@@ -10,6 +11,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
   if (!isVikingConfigured()) return NextResponse.json({ error: "文档检索服务尚未配置，文件已安全保存；完成配置后可以重试。" }, { status: 503 });
 
   const { id } = await context.params;
@@ -34,15 +36,20 @@ export async function POST(_request: Request, context: RouteContext) {
       documentType,
       signedUrl: signed.signedUrl,
     });
-    const { data: updated } = await supabase
+    const { data: updated } = await service
       .from("documents")
       .update({ kb_document_id: kbDocumentId, status: "PROCESSING", error_message: null })
       .eq("id", id)
+      .eq("owner_id", auth.user.id)
       .select("id, status, kb_document_id, updated_at")
       .single();
     return NextResponse.json({ document: updated });
   } catch {
-    await supabase.from("documents").update({ status: "FAILED", error_message: "文档处理失败，可稍后重试。" }).eq("id", id);
+    await service
+      .from("documents")
+      .update({ status: "FAILED", error_message: "文档处理失败，可稍后重试。" })
+      .eq("id", id)
+      .eq("owner_id", auth.user.id);
     return NextResponse.json({ error: "文档处理失败，请检查服务设置后重试。" }, { status: 502 });
   }
 }

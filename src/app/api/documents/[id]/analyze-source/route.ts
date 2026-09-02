@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
 import { analyzeSingleSource, readStoredSingleSourceAnalysis } from "@/lib/single-source-analysis";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -10,6 +11,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const { id } = await context.params;
   const { data: document } = await supabase
@@ -38,10 +40,11 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   const startedAt = document.analysis_started_at ?? new Date().toISOString();
-  const { error: lockError } = await supabase
+  const { error: lockError } = await service
     .from("documents")
     .update({ analysis_started_at: startedAt, analysis_status: "PROCESSING", error_message: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_id", auth.user.id);
   if (lockError) return NextResponse.json({ error: "暂时无法启动分析，请重试。" }, { status: 500 });
 
   try {
@@ -56,21 +59,23 @@ export async function POST(_request: Request, context: RouteContext) {
       },
     });
     const message = analyzed.status === "PARTIAL" ? "部分内容暂未得到可靠结果，可以稍后重新分析。" : null;
-    const { error: saveError } = await supabase
+    const { error: saveError } = await service
       .from("documents")
       .update({
         analysis_result_json: analyzed.result,
         analysis_status: analyzed.status,
         error_message: message,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("owner_id", auth.user.id);
     if (saveError) return NextResponse.json({ error: "分析已完成，但结果保存失败，请重试。" }, { status: 500 });
     return NextResponse.json({ result: analyzed.result, status: analyzed.status, cached: false, message });
   } catch {
-    await supabase
+    await service
       .from("documents")
       .update({ analysis_status: "FAILED", error_message: "没有得到可核验的分析结果，请重试。" })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("owner_id", auth.user.id);
     return NextResponse.json({ error: "分析暂时失败或超时，资料已保留，请重试。" }, { status: 502 });
   }
 }
