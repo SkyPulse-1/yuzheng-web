@@ -4,7 +4,7 @@ export type AssistantSourceAvailability = {
 };
 
 export function isAssistantSourceAvailable(source: AssistantSourceAvailability) {
-  return source.source_kind === "TEXT" || source.status === "READY";
+  return source.source_kind === "TEXT" || source.status === "READY" || source.status === "STORED";
 }
 
 export function filterAssistantSources<T extends AssistantSourceAvailability>(sources: T[]) {

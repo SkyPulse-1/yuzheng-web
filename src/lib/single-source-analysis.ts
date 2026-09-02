@@ -4,12 +4,12 @@ import {
   parseTextAnalysisResult,
   type TextAnalysisResult,
 } from "./analysis-results";
-import type { HiAgentResult } from "./hiagent/client";
+import type { HiAgentFile, HiAgentResult } from "./hiagent/client";
 import { analyzeTextSourceContent } from "./text-analysis";
 
 type SingleSourceAnalysisDependencies = {
   createConversation: (userId: string) => Promise<string>;
-  analyze: (input: { userId: string; conversationId: string; query: string }) => Promise<HiAgentResult>;
+  analyze: (input: { userId: string; conversationId: string; query: string; files?: HiAgentFile[] }) => Promise<HiAgentResult>;
 };
 
 function buildFileAnalysisQuery(sourceName: string) {
@@ -53,6 +53,7 @@ export async function analyzeSingleSource(input: {
   sourceKind: "FILE" | "TEXT";
   sourceName: string;
   sourceText: string | null;
+  files?: HiAgentFile[];
   dependencies: SingleSourceAnalysisDependencies;
 }): Promise<{ result: TextAnalysisResult; contextText: string; status: "READY" | "PARTIAL" }> {
   if (input.sourceKind === "TEXT") {
@@ -74,6 +75,7 @@ export async function analyzeSingleSource(input: {
     userId: input.userId,
     conversationId,
     query: buildFileAnalysisQuery(input.sourceName),
+    files: input.files,
   });
   const contextText = response.evidenceCards
     .filter((card) => card.document_name === input.sourceName)

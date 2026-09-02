@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
+import { chatWithHiAgent, createHiAgentConversation, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
+import { prepareFileForHiAgent } from "@/lib/hiagent/file-ingestion";
 import { analyzeSingleSource, readStoredSingleSourceAnalysis } from "@/lib/single-source-analysis";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -16,7 +17,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   const { data: document } = await supabase
     .from("documents")
-    .select("id, original_name, source_kind, text_content, analysis_result_json, analysis_status, analysis_started_at, deleted_at")
+    .select("id, original_name, source_kind, text_content, storage_path, mime_type, size_bytes, analysis_result_json, analysis_status, analysis_started_at, deleted_at")
     .eq("id", id)
     .maybeSingle();
   if (!document || document.deleted_at) return NextResponse.json({ error: "资料不存在或已移入回收站。" }, { status: 404 });
@@ -30,13 +31,8 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   const sourceKind = document.source_kind === "TEXT" ? "TEXT" : "FILE";
-  const configured = sourceKind === "TEXT" ? isHiAgentTransportConfigured() : isHiAgentConfigured();
-  if (!configured) {
-    return NextResponse.json({
-      error: sourceKind === "TEXT"
-        ? "文字分析服务尚未配置完成，请稍后再试。"
-        : "文件检索尚未启用可靠的资料筛选，暂时不能生成可核验结论。",
-    }, { status: 503 });
+  if (!isHiAgentTransportConfigured()) {
+    return NextResponse.json({ error: "分析服务尚未配置完成，请稍后再试。" }, { status: 503 });
   }
 
   const startedAt = document.analysis_started_at ?? new Date().toISOString();
@@ -53,6 +49,14 @@ export async function POST(_request: Request, context: RouteContext) {
       sourceKind,
       sourceName: document.original_name,
       sourceText: document.text_content,
+      files: sourceKind === "FILE" && document.storage_path
+        ? [await prepareFileForHiAgent({
+            storagePath: document.storage_path,
+            originalName: document.original_name,
+            sizeBytes: document.size_bytes,
+            mimeType: document.mime_type,
+          })]
+        : undefined,
       dependencies: {
         createConversation: (userId) => createHiAgentConversation({ userId }),
         analyze: (request) => chatWithHiAgent(request),

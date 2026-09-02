@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { chatWithHiAgent, createHiAgentConversation, isHiAgentConfigured, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
+import { chatWithHiAgent, createHiAgentConversation, isHiAgentTransportConfigured, type HiAgentFile } from "@/lib/hiagent/client";
+import { prepareFileForHiAgent } from "@/lib/hiagent/file-ingestion";
 import { filterAssistantSources } from "@/lib/assistant-sources";
 import { attachUniqueDocumentIds } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
@@ -28,11 +29,11 @@ export async function POST(request: Request) {
   const { data: library } = await supabase.from("libraries").select("id, name").eq("id", libraryId).maybeSingle();
   if (!library) return NextResponse.json({ error: "知识库不存在。" }, { status: 404 });
 
-  let selectedDocuments: { id: string; original_name: string; source_kind: "FILE" | "TEXT"; text_content: string | null; status: string }[] = [];
+  let selectedDocuments: { id: string; original_name: string; source_kind: "FILE" | "TEXT"; text_content: string | null; status: string; storage_path: string | null; mime_type: string; size_bytes: number }[] = [];
   if (selectedIds.length) {
     const { data } = await supabase
       .from("documents")
-      .select("id, original_name, source_kind, text_content, status")
+      .select("id, original_name, source_kind, text_content, status, storage_path, mime_type, size_bytes")
       .eq("library_id", libraryId)
       .is("deleted_at", null)
       .in("id", selectedIds);
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   } else {
     const { data } = await supabase
       .from("documents")
-      .select("id, original_name, source_kind, text_content, status")
+      .select("id, original_name, source_kind, text_content, status, storage_path, mime_type, size_bytes")
       .eq("library_id", libraryId)
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
@@ -51,10 +52,10 @@ export async function POST(request: Request) {
   if (!selectedDocuments.length) return NextResponse.json({ error: "当前知识库还没有可分析的资料。" }, { status: 400 });
   const names = selectedDocuments.map((document) => document.original_name);
   const mode = selectedIds.length === 0 ? "GENERAL" : names.length === 1 ? "SINGLE" : "MULTI";
-  const fileDocuments = selectedDocuments.filter((document) => document.source_kind !== "TEXT");
+  const fileDocuments = selectedDocuments.filter((document) => document.source_kind !== "TEXT" && document.storage_path);
   const textDocuments = selectedDocuments.filter((document) => document.source_kind === "TEXT" && document.text_content);
-  if (!isHiAgentTransportConfigured() || (fileDocuments.length > 0 && !isHiAgentConfigured())) {
-    return NextResponse.json({ error: fileDocuments.length ? "学校文件检索服务尚未接通，请先选择已分析的文字资料。" : "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
+  if (!isHiAgentTransportConfigured()) {
+    return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
   }
 
   let remainingContext = DIRECT_TEXT_CONTEXT_LIMIT;
@@ -112,7 +113,15 @@ export async function POST(request: Request) {
   try {
     const hiAgentConversationId = await createHiAgentConversation({ userId: user.id });
     await supabase.from("conversations").update({ hiagent_conversation_id: hiAgentConversationId }).eq("id", conversationId);
-    const result = await chatWithHiAgent({ userId: user.id, conversationId: hiAgentConversationId, query: adaptedQuery });
+    const files: HiAgentFile[] = selectedIds.length > 0 && fileDocuments.length
+      ? await Promise.all(fileDocuments.map((document) => prepareFileForHiAgent({
+          storagePath: document.storage_path as string,
+          originalName: document.original_name,
+          sizeBytes: document.size_bytes,
+          mimeType: document.mime_type,
+        })))
+      : [];
+    const result = await chatWithHiAgent({ userId: user.id, conversationId: hiAgentConversationId, query: adaptedQuery, files });
     const evidenceCards = attachUniqueDocumentIds(result.evidenceCards, selectedDocuments);
     const { data: savedMessage, error: saveError } = await supabase
       .from("messages")

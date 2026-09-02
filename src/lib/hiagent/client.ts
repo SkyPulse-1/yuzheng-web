@@ -16,6 +16,13 @@ export type EvidenceCard = {
 
 export type HiAgentResult = { answer: string; evidenceCards: EvidenceCard[] };
 
+export type HiAgentFile = {
+  path: string;
+  name: string;
+  size: number;
+  url: string;
+};
+
 function getTransportConfig() {
   const baseUrl = process.env.HIAGENT_BASE_URL?.replace(/\/$/, "");
   const apiKey = process.env.HIAGENT_API_KEY?.trim();
@@ -150,19 +157,24 @@ export async function chatWithHiAgent(input: {
   userId: string;
   conversationId: string;
   query: string;
+  files?: HiAgentFile[];
 }): Promise<HiAgentResult> {
   const config = getTransportConfig();
   if (!config) throw new Error("HIAGENT_NOT_CONFIGURED");
+  const body: Record<string, unknown> = {
+    AppKey: config.appKey,
+    UserID: input.userId,
+    AppConversationID: input.conversationId,
+    Query: input.query,
+    ResponseMode: "streaming",
+  };
+  if (input.files && input.files.length > 0) {
+    body.QueryExtends = { Files: input.files };
+  }
   const response = await fetch(`${config.baseUrl}${config.chatPath}`, {
     method: "POST",
     headers: requestHeaders(config.apiKey),
-    body: JSON.stringify({
-      AppKey: config.appKey,
-      UserID: input.userId,
-      AppConversationID: input.conversationId,
-      Query: input.query,
-      ResponseMode: "streaming",
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(120000),
     cache: "no-store",
   });
