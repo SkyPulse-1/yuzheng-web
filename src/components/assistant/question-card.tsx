@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { formatQuestionTime, type QuestionCard as QuestionCardData } from "../../lib/questions";
 
 export function QuestionCard({ question, onOpen, onDelete }: {
@@ -7,6 +9,7 @@ export function QuestionCard({ question, onOpen, onDelete }: {
   onOpen: () => void;
   onDelete: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const processing = question.status === "PROCESSING";
   const failed = question.status === "FAILED";
   return (
@@ -32,7 +35,23 @@ export function QuestionCard({ question, onOpen, onDelete }: {
         </div>
         {question.sourceWarning ? <p className="mt-3 text-xs font-medium text-warning">{question.sourceWarning}</p> : null}
       </button>
-      {!processing ? <button type="button" className="question-delete" onClick={onDelete}>删除</button> : null}
+      {!processing ? (
+        <button
+          type="button"
+          className="question-delete"
+          onClick={() => {
+            if (confirming) {
+              setConfirming(false);
+              onDelete();
+            } else {
+              setConfirming(true);
+            }
+          }}
+          onBlur={() => setConfirming(false)}
+        >
+          {confirming ? "确认删除？" : "删除"}
+        </button>
+      ) : null}
     </article>
   );
 }

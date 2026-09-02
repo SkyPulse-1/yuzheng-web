@@ -150,15 +150,18 @@ export function AssistantWorkspace({ libraryId, libraryName, sources, initialQue
   }
 
   async function deleteQuestion(question: QuestionCard) {
-    if (!window.confirm("确认删除这张问题卡片吗？删除后不会影响原始资料。")) return;
     if (question.id.startsWith("pending-")) {
       setQuestions((current) => current.filter((item) => item.id !== question.id));
       return;
     }
-    const response = await fetch(`/api/questions/${question.id}`, { method: "DELETE" });
-    if (response.ok) {
-      setQuestions((current) => current.filter((item) => item.id !== question.id));
-      if (activeQuestion?.id === question.id) setActiveQuestion(null);
+    try {
+      const response = await fetch(`/api/questions/${question.id}`, { method: "DELETE" });
+      if (response.ok) {
+        setQuestions((current) => current.filter((item) => item.id !== question.id));
+        if (activeQuestion?.id === question.id) setActiveQuestion(null);
+      }
+    } catch {
+      // 删除失败时保留卡片，避免误以为已删除。
     }
   }
 
