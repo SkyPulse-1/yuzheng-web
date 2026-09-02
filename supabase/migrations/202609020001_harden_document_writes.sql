@@ -3,7 +3,8 @@
 -- Before this migration, an authenticated user could call Supabase directly
 -- to modify their own `documents` rows (path / library / status / analysis
 -- fields) and upload arbitrary objects under their UUID prefix. We now:
---   1. remove direct INSERT/UPDATE/DELETE on documents for `authenticated`;
+--   1. remove direct INSERT/UPDATE/DELETE on documents for `authenticated`
+--      and grant those privileges to `service_role` for server writes;
 --   2. require every storage upload to match a server-created, owned,
 --      `UPLOADING` document path.
 --
@@ -12,6 +13,7 @@
 
 -- 1) Remove browser write access to the documents table.
 revoke insert, update, delete on public.documents from authenticated;
+grant select, insert, update, delete on public.documents to service_role;
 
 drop policy if exists "Users can create own documents" on public.documents;
 drop policy if exists "Users can update own documents" on public.documents;
