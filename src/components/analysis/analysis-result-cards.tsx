@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { AnalysisCardFrame } from "./analysis-card-frame";
 import { AnalysisDetailDialog } from "./analysis-detail-dialog";
 import {
   ANALYSIS_SECTION_KEYS,
@@ -25,31 +26,17 @@ export function AnalysisSectionCard({ sectionKey, items, onOpen }: {
   const meta = ANALYSIS_SECTION_META[sectionKey];
   const index = ANALYSIS_SECTION_KEYS.indexOf(sectionKey);
   return (
-    <article
-      className="analysis-card glass-hover-card"
-      onPointerMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        event.currentTarget.style.setProperty("--glow-x", `${event.clientX - bounds.left}px`);
-        event.currentTarget.style.setProperty("--glow-y", `${event.clientY - bounds.top}px`);
-      }}
-    >
-      <button type="button" className="flex h-full w-full flex-col text-left" onClick={onOpen}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-evidence">{String(index + 1).padStart(2, "0")}</p>
-            <h3 className="mt-2 font-serif text-xl font-semibold text-ink">{meta.title}</h3>
-            <p className="mt-1 text-xs leading-5 text-muted">{meta.description}</p>
-          </div>
-          <span className="metadata-chip shrink-0">{items.length} 条</span>
-        </div>
-        <div className="mt-6 flex-1 space-y-3">
-          {items.length ? items.slice(0, 2).map((item) => (
-            <p key={item.text} className="line-clamp-2 text-sm leading-7 text-ink-soft">{item.text}</p>
-          )) : <p className="text-sm leading-7 text-muted">暂未得到可靠结果。</p>}
-        </div>
-        <p className="mt-5 text-xs font-semibold text-primary">打开详情</p>
-      </button>
-    </article>
+    <AnalysisCardFrame
+      eyebrow={String(index + 1).padStart(2, "0")}
+      title={meta.title}
+      description={meta.description}
+      countLabel={`${items.length} 条`}
+      preview={items.length ? items.slice(0, 2).map((item) => (
+        <p key={item.text} className="line-clamp-2 text-sm leading-7 text-ink-soft">{item.text}</p>
+      )) : <p className="text-sm leading-7 text-muted">暂未得到可靠结果。</p>}
+      actionLabel="打开详情"
+      onOpen={onOpen}
+    />
   );
 }
 
