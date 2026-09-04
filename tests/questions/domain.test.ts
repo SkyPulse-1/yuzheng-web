@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { buildQuestionCards } from "../../src/lib/questions";
+import { buildQuestionCards, splitQuestionAnswer } from "../../src/lib/questions";
 
 describe("question cards", () => {
+  it("turns a free-form answer into stable analysis statements", () => {
+    expect(splitQuestionAnswer("1. 核心结论\n\n- 补充判断\n• 资料边界")).toEqual([
+      "核心结论",
+      "补充判断",
+      "资料边界",
+    ]);
+  });
+
   it("uses the latest assistant answer and keeps evidence metadata", () => {
     const cards = buildQuestionCards([{
       id: "q1",

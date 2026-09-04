@@ -107,6 +107,7 @@ button:disabled { cursor: not-allowed; }
 
   .analysis-card-grid { @apply grid gap-4 md:grid-cols-2; }
   .analysis-card { @apply relative min-h-72 overflow-hidden rounded-[18px] border border-outline bg-surface p-5 shadow-[0_10px_30px_rgba(49,42,31,0.05)] sm:p-6; }
+  .analysis-card.is-processing { border-color: rgba(32,43,91,.24); background: linear-gradient(120deg, var(--surface), #f4f5fa, var(--surface)); background-size: 220% 100%; animation: quiet-shimmer 2.6s ease-in-out infinite; }
   .glass-hover-card { transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease; }
   .glass-hover-card::before {
     position: absolute;
@@ -171,7 +172,7 @@ button:disabled { cursor: not-allowed; }
   .question-card { @apply relative min-h-64 overflow-hidden rounded-[18px] border border-outline bg-surface p-5 shadow-[0_10px_30px_rgba(49,42,31,0.05)]; animation: card-in 360ms cubic-bezier(.2,.8,.2,1) both; }
   .question-card.is-processing { border-color: rgba(32,43,91,.24); background: linear-gradient(120deg, var(--surface), #f4f5fa, var(--surface)); background-size: 220% 100%; animation: card-in 360ms ease both, quiet-shimmer 2.6s ease-in-out infinite; }
   .question-delete { @apply absolute bottom-4 right-4 z-10 rounded-lg px-2 py-1 text-xs text-muted opacity-0 transition hover:bg-red-50 hover:text-error group-hover:opacity-100; }
-  .question-card:hover .question-delete, .question-delete:focus-visible { opacity: 1; }
+  .analysis-card:hover .question-delete, .question-delete:focus-visible { opacity: 1; }
   .question-empty { @apply mx-auto flex min-h-72 max-w-6xl flex-col items-center justify-center rounded-[24px] border border-dashed border-outline bg-surface/55 px-6 text-center; }
   .question-composer { @apply fixed bottom-4 left-4 right-4 z-30 mx-auto flex max-w-4xl gap-3 rounded-[24px] border border-white/70 bg-surface/86 p-3 shadow-[0_24px_70px_rgba(32,43,91,0.18)] backdrop-blur-xl lg:left-[324px]; }
   .question-input { @apply min-h-14 w-full resize-none bg-transparent px-2 py-1 text-sm leading-6 text-ink outline-none placeholder:text-muted/65; }

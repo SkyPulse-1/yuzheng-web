@@ -40,6 +40,13 @@ export type QuestionCard = {
   updatedAt: string;
 };
 
+export function splitQuestionAnswer(answer: string): string[] {
+  return answer
+    .split(/\r?\n+/)
+    .map((line) => line.trim().replace(/^(?:#{1,6}\s*|[-*•]\s+|\d+[.)、]\s*)/, "").trim())
+    .filter(Boolean);
+}
+
 function readEvidenceCards(value: unknown): EvidenceCard[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry, index) => {

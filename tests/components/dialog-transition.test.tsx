@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 import { AnalysisDetailDialog } from "../../src/components/analysis/analysis-detail-dialog";
 import { QuestionDetailDialog } from "../../src/components/assistant/question-detail-dialog";
@@ -72,6 +72,37 @@ describe("detail dialog transitions", () => {
     expect(onClose).not.toHaveBeenCalled();
     vi.advanceTimersByTime(220);
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("uses the fullscreen analysis layout and numbers question conclusions", () => {
+    stubMotionPreference(false);
+    render(<QuestionDetailDialog question={{
+      ...question,
+      answer: "1. 材料给出了可核验依据。\n\n- 结论只适用于所选资料。",
+      evidenceCards: [{
+        card_id: "e1",
+        claim: "材料支持该判断",
+        evidence_text: "这是能够核验的原文。",
+        document_name: "资料.pdf",
+        page_number: 2,
+        document_id: "document-1",
+      }],
+      evidenceCount: 1,
+    }} onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog", { name: "问题卡片详情" });
+    expect(dialog.classList.contains("analysis-dialog")).toBe(true);
+    expect(within(dialog).getByText("01")).toBeTruthy();
+    expect(within(dialog).getByText("02")).toBeTruthy();
+    expect(within(dialog).getByText("材料给出了可核验依据。")).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: "查看原文" })).toBeTruthy();
+  });
+
+  it("states the evidence boundary when a question has no evidence", () => {
+    stubMotionPreference(false);
+    render(<QuestionDetailDialog question={question} onClose={vi.fn()} />);
+
+    expect(screen.getByText("资料中未提供足够依据。")).toBeTruthy();
   });
 
   it("closes a question dialog from the backdrop without unmounting it early", () => {
