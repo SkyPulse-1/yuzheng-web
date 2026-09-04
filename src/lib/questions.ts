@@ -40,11 +40,34 @@ export type QuestionCard = {
   updatedAt: string;
 };
 
+const ANSWER_SECTION_HEADINGS = new Set([
+  "核心结论",
+  "分析结论",
+  "关键证据",
+  "原文证据",
+  "原文依据",
+  "简单理解",
+  "补充说明",
+  "信息不足",
+  "信息不足与歧义",
+]);
+
 export function splitQuestionAnswer(answer: string): string[] {
   return answer
     .split(/\r?\n+/)
-    .map((line) => line.trim().replace(/^(?:#{1,6}\s*|[-*•]\s+|\d+[.)、]\s*)/, "").trim())
-    .filter(Boolean);
+    .flatMap((line) => {
+      const original = line.trim();
+      if (!original || /^-{3,}$/.test(original)) return [];
+      const isHeading = /^#{1,6}\s*/.test(original);
+      const cleaned = original
+        .replace(/^#{1,6}\s*/, "")
+        .replace(/^(?:[-*•]\s+|\d+[.)、]\s*|>\s*)/, "")
+        .replace(/\[([^\]]+)]\([^)]*\)/g, "$1")
+        .replace(/[*_`]/g, "")
+        .trim();
+      if (!cleaned || (isHeading && ANSWER_SECTION_HEADINGS.has(cleaned))) return [];
+      return [cleaned];
+    });
 }
 
 function readEvidenceCards(value: unknown): EvidenceCard[] {

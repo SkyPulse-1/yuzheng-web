@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { AnalysisCardFrame } from "../analysis/analysis-card-frame";
-import type { QuestionCard as QuestionCardData } from "../../lib/questions";
+import { splitQuestionAnswer, type QuestionCard as QuestionCardData } from "../../lib/questions";
 
 export function QuestionCard({ question, onOpen, onDelete }: {
   question: QuestionCardData;
@@ -13,6 +13,7 @@ export function QuestionCard({ question, onOpen, onDelete }: {
   const [confirming, setConfirming] = useState(false);
   const processing = question.status === "PROCESSING";
   const failed = question.status === "FAILED";
+  const previewStatements = splitQuestionAnswer(question.answer || (failed ? question.error ?? "" : ""));
   return (
     <AnalysisCardFrame
       eyebrow={processing ? "分析中" : failed ? "未完成" : "研究结论"}
@@ -23,9 +24,11 @@ export function QuestionCard({ question, onOpen, onDelete }: {
         <p className="text-sm leading-7 text-muted">正在整理结论与原文依据。</p>
       ) : (
         <>
-          <p className={`line-clamp-2 text-sm leading-7 ${failed ? "text-error" : "text-ink-soft"}`}>
-            {question.answer || "资料中未提供足够依据。"}
-          </p>
+          {(previewStatements.length ? previewStatements.slice(0, 2) : ["资料中未提供足够依据。"]).map((statement) => (
+            <p key={statement} className={`line-clamp-2 text-sm leading-7 ${failed ? "text-error" : "text-ink-soft"}`}>
+              {statement}
+            </p>
+          ))}
           {question.sourceWarning ? <p className="text-xs font-medium text-warning">{question.sourceWarning}</p> : null}
         </>
       )}

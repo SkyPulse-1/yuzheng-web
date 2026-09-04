@@ -29,7 +29,7 @@ describe("analysis card parity", () => {
           id: "question-1",
           question: "材料如何支持结论？",
           status: "COMPLETED",
-          answer: "材料给出了可核验依据。",
+          answer: "### 核心结论\n**材料给出了可核验依据。**\n- 结论仅适用于所选资料。",
           evidenceCards: [],
           evidenceCount: 0,
           selectedDocumentIds: ["source-1"],
@@ -49,6 +49,9 @@ describe("analysis card parity", () => {
     expect(questionCard?.classList.contains("analysis-card")).toBe(true);
     expect(screen.getByText("研究结论")).toBeTruthy();
     expect(screen.getByText("打开详情")).toBeTruthy();
+    expect(screen.getByText("材料给出了可核验依据。")).toBeTruthy();
+    expect(screen.getByText("结论仅适用于所选资料。")).toBeTruthy();
+    expect(screen.queryByText(/###|\*\*/)).toBeNull();
     expect(screen.getByRole("button", { name: "删除" })).toBeTruthy();
   });
 });

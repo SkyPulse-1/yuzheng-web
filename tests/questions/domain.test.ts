@@ -4,7 +4,7 @@ import { buildQuestionCards, splitQuestionAnswer } from "../../src/lib/questions
 
 describe("question cards", () => {
   it("turns a free-form answer into stable analysis statements", () => {
-    expect(splitQuestionAnswer("1. 核心结论\n\n- 补充判断\n• 资料边界")).toEqual([
+    expect(splitQuestionAnswer("### 核心结论\n1. **核心结论**\n\n- 补充判断\n> `资料边界`\n---\n### 关键证据")).toEqual([
       "核心结论",
       "补充判断",
       "资料边界",
