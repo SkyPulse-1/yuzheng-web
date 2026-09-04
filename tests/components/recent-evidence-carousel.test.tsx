@@ -37,6 +37,7 @@ const workspaces: HomeResearchWorkspace[] = [
     libraryName: "现代史研究",
     workspaceHref: "/assistant?libraryId=library-1",
     question: "比较两份材料的论证差异",
+    answerSummary: "第一份材料更强调制度条件，第二份材料更强调行动者选择。",
     updatedAt: "2026-09-01T10:00:00Z",
     card: {
       card_id: "evidence-1",
@@ -54,6 +55,7 @@ const workspaces: HomeResearchWorkspace[] = [
     libraryName: "语言学笔记",
     workspaceHref: "/assistant?libraryId=library-2",
     question: "归纳作者的核心判断",
+    answerSummary: "作者的核心判断围绕语言实践与社会结构之间的互动展开。",
     updatedAt: "2026-09-01T09:00:00Z",
     card: {
       card_id: "evidence-2",
@@ -116,9 +118,17 @@ describe("RecentEvidenceCarousel", () => {
   it("does not invent a source link when a real workspace has no validated card", () => {
     render(<RecentEvidenceCarousel workspaces={[{ ...workspaces[0], card: null, sourceHref: null }]} loggedIn loadFailed={false} />);
 
-    expect(screen.getByText("这次分析没有形成可回溯的原文证据")).toBeTruthy();
+    expect(screen.getByText("第一份材料更强调制度条件，第二份材料更强调行动者选择。")).toBeTruthy();
+    expect(screen.getByText("尚未形成可回溯证据")).toBeTruthy();
     expect(screen.queryByText("查看原文")).toBeNull();
     expect(screen.getByRole("link", { name: "继续研究" }).getAttribute("href"))
       .toBe("/assistant?libraryId=library-1");
+  });
+
+  it("uses the empty explanation only when the latest answer has no readable content", () => {
+    render(<RecentEvidenceCarousel workspaces={[{ ...workspaces[0], answerSummary: null, card: null, sourceHref: null }]} loggedIn loadFailed={false} />);
+
+    expect(screen.getByText("这次分析没有形成可回溯的原文证据")).toBeTruthy();
+    expect(screen.queryByText("查看原文")).toBeNull();
   });
 });

@@ -391,8 +391,8 @@ button:disabled { cursor: not-allowed; }
   left: -2%;
   width: 108%;
   height: auto;
-  opacity: .82;
-  filter: saturate(.72) contrast(.94) drop-shadow(0 28px 46px rgba(82, 65, 38, .09));
+  opacity: .74;
+  filter: saturate(.68) contrast(.92) drop-shadow(0 28px 46px rgba(82, 65, 38, .09));
   object-fit: contain;
   pointer-events: none;
   user-select: none;
@@ -582,6 +582,16 @@ button:disabled { cursor: not-allowed; }
   border-radius: 999px;
   background: rgba(36, 107, 85, .08);
   color: var(--success);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.research-unverified {
+  flex: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(145, 101, 24, .09);
+  color: #7a5416;
   font-size: 12px;
   font-weight: 700;
 }

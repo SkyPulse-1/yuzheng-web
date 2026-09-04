@@ -4,6 +4,7 @@ import {
   buildRecentResearchWorkspaces,
   parseEvidenceCardSnapshot,
   parseRecentEvidenceRows,
+  summarizeRecentAnswer,
 } from "../../src/lib/evidence-views";
 
 describe("parseEvidenceCardSnapshot", () => {
@@ -64,11 +65,13 @@ describe("buildRecentResearchWorkspaces", () => {
       {
         conversation_id: "conversation-newer-same-library",
         created_at: "2026-09-01T11:01:00Z",
+        content: "  新回答\n包含   多余空格  ",
         evidence_cards_json: [{ card_id: "new", claim: "新结论", evidence_text: "新原文", document_id: "document-new", document_name: "错误快照名.pdf", page_number: 8 }],
       },
       {
         conversation_id: "conversation-old",
         created_at: "2026-09-01T08:01:00Z",
+        content: null,
         evidence_cards_json: [{ card_id: "old", claim: "旧结论", evidence_text: "旧原文", document_id: "document-old", document_name: "旧资料.pdf", page_number: null }],
       },
     ],
@@ -89,6 +92,7 @@ describe("buildRecentResearchWorkspaces", () => {
     expect(workspaces[0]).toMatchObject({
       libraryName: "新工作台",
       question: "同库最新问题",
+      answerSummary: "新回答 包含 多余空格",
       workspaceHref: "/assistant?libraryId=library-new",
       sourceHref: "/api/documents/document-new/file?page=8",
     });
@@ -111,5 +115,14 @@ describe("buildRecentResearchWorkspaces", () => {
     });
 
     expect(workspaces[0].card).toBeNull();
+  });
+});
+
+describe("summarizeRecentAnswer", () => {
+  it("normalizes whitespace and truncates long answers without exposing markup", () => {
+    expect(summarizeRecentAnswer("  第一段\n\n第二段   继续  ")).toBe("第一段 第二段 继续");
+    expect(summarizeRecentAnswer("### 核心结论\n**重点判断**\n> 一段引文")).toBe("重点判断 一段引文");
+    expect(summarizeRecentAnswer("一二三四五六", 5)).toBe("一二三四…");
+    expect(summarizeRecentAnswer("   ")).toBeNull();
   });
 });

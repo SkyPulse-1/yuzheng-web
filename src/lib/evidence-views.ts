@@ -1,4 +1,5 @@
 import type { EvidenceCard } from "@/lib/hiagent/client";
+import { splitQuestionAnswer } from "./questions";
 
 type EvidenceViewRow = { card_json?: unknown };
 
@@ -7,6 +8,7 @@ export type HomeResearchWorkspace = {
   libraryName: string;
   workspaceHref: string;
   question: string;
+  answerSummary: string | null;
   updatedAt: string;
   card: EvidenceCard | null;
   sourceHref: string | null;
@@ -22,6 +24,7 @@ type HomeConversationRow = {
 
 type HomeMessageRow = {
   conversation_id: string;
+  content: string | null;
   evidence_cards_json: unknown;
   created_at: string;
 };
@@ -71,6 +74,13 @@ function buildSourceHref(documentId: string, pageNumber: number | null) {
     ? `?page=${pageNumber}`
     : "";
   return `/api/documents/${documentId}/file${page}`;
+}
+
+export function summarizeRecentAnswer(content: string | null | undefined, maxLength = 180) {
+  const normalized = splitQuestionAnswer(content ?? "").join(" ").replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
 export function buildRecentResearchWorkspaces(input: {
@@ -124,6 +134,7 @@ export function buildRecentResearchWorkspaces(input: {
       libraryName: library.name,
       workspaceHref: `/assistant?libraryId=${encodeURIComponent(library.id)}`,
       question: conversation.title,
+      answerSummary: summarizeRecentAnswer(message?.content),
       updatedAt: conversation.updated_at,
       card: trustedCard,
       sourceHref: trustedCard?.document_id

@@ -57,7 +57,7 @@ export function RecentEvidenceCarousel({
       }}
     >
       <Image
-        src="/assets/research-document-backdrop-alpha.png"
+        src="/assets/research-document-backdrop-abstract.svg"
         alt=""
         width={1536}
         height={1024}
@@ -117,6 +117,23 @@ export function RecentEvidenceCarousel({
                 <footer className="research-evidence-footer">
                   <span>来源：{workspace.card.document_name}{workspace.card.page_number ? ` · 第 ${workspace.card.page_number} 页` : ""}</span>
                   <a href={workspace.sourceHref} target="_blank" rel="noreferrer">查看原文</a>
+                </footer>
+              </>
+            ) : workspace.answerSummary ? (
+              <>
+                <header className="research-evidence-header">
+                  <h2>最近回答</h2>
+                  <span className="research-unverified">尚未形成可回溯证据</span>
+                </header>
+
+                <div className="research-evidence-body">
+                  <p className="research-evidence-label">研究摘要</p>
+                  <blockquote>{workspace.answerSummary}</blockquote>
+                </div>
+
+                <footer className="research-evidence-footer">
+                  <span>该回答来自你的真实研究记录，当前没有可靠的原文定位。</span>
+                  <Link href={workspace.workspaceHref}>继续研究</Link>
                 </footer>
               </>
             ) : (

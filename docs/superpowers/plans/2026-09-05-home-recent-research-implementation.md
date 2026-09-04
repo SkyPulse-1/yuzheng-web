@@ -31,17 +31,17 @@
 - Consumes: Supabase `messages` 行中的 `content`、`evidence_cards_json`、`created_at`。
 - Produces: `HomeResearchWorkspace.answerSummary: string | null`。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在测试消息中加入 `content`，断言最新消息会生成去除多余空白且长度受限的 `answerSummary`；无消息内容时为 `null`。
 
-- [ ] **Step 2: 运行定向测试并确认失败**
+- [x] **Step 2: 运行定向测试并确认失败**
 
 Run: `npm test -- tests/evidence/evidence-views.test.ts`
 
 Expected: FAIL，因为视图模型尚无 `answerSummary`。
 
-- [ ] **Step 3: 实现最小数据改动**
+- [x] **Step 3: 实现最小数据改动**
 
 在 `HomeMessageRow` 增加 `content: string | null`，新增纯函数：
 
@@ -51,7 +51,7 @@ export function summarizeRecentAnswer(content: string | null | undefined, maxLen
 
 该函数把连续空白折叠为单个空格，空内容返回 `null`，超长内容在不超过 `maxLength` 的位置加省略号。`buildRecentResearchWorkspaces` 将最新助手消息摘要写入 `answerSummary`。首页查询把 `content` 加入 select。
 
-- [ ] **Step 4: 运行定向测试并确认通过**
+- [x] **Step 4: 运行定向测试并确认通过**
 
 Run: `npm test -- tests/evidence/evidence-views.test.ts`
 
@@ -70,21 +70,21 @@ Expected: PASS。
 - Consumes: `HomeResearchWorkspace.answerSummary`、`card`、`sourceHref`。
 - Produces: 已验证证据卡，或不含来源链接的真实回答摘要卡。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 添加一个 `card: null`、`sourceHref: null`、`answerSummary` 有真实内容的工作台，断言摘要可见、状态文案为“尚未形成可回溯证据”、没有“查看原文”，并可通过“继续研究”进入对应工作台。
 
-- [ ] **Step 2: 运行定向测试并确认失败**
+- [x] **Step 2: 运行定向测试并确认失败**
 
 Run: `npm test -- tests/components/recent-evidence-carousel.test.tsx`
 
 Expected: FAIL，因为当前无来源分支只显示通用空状态。
 
-- [ ] **Step 3: 实现摘要卡**
+- [x] **Step 3: 实现摘要卡**
 
 保留有证据卡时的布局；在没有可靠证据但存在 `answerSummary` 时，使用同一张卡的标题、正文、状态徽标和底部入口展示真实回答。状态徽标使用中性色，不渲染来源文档或原文链接。完全没有回答内容时才显示原有空状态。
 
-- [ ] **Step 4: 运行组件测试并确认通过**
+- [x] **Step 4: 运行组件测试并确认通过**
 
 Run: `npm test -- tests/components/recent-evidence-carousel.test.tsx`
 
@@ -103,15 +103,15 @@ Expected: PASS。
 - Consumes: 静态装饰资产。
 - Produces: 无具体标题和正文的抽象双页纸张背景。
 
-- [ ] **Step 1: 创建抽象背景资产**
+- [x] **Step 1: 创建抽象背景资产**
 
 用 SVG 绘制两张错开的米白纸页、低对比度行纹、索引点和页码符号。SVG 不包含具体研究标题、问题或结论。
 
-- [ ] **Step 2: 替换组件引用并微调样式**
+- [x] **Step 2: 替换组件引用并微调样式**
 
 将背景路径改为 `/assets/research-document-backdrop-abstract.svg`，保持 `aria-hidden`、不可交互与现有响应式位置；调整透明度确保最近研究卡片始终是最高视觉层级。
 
-- [ ] **Step 3: 运行全部自动验证**
+- [x] **Step 3: 运行全部自动验证**
 
 Run:
 
@@ -123,7 +123,7 @@ npm run build
 
 Expected: 现有测试和新增测试全部通过，lint 与 production build 成功。
 
-- [ ] **Step 4: 浏览器视觉验收**
+- [x] **Step 4: 浏览器视觉验收**
 
 在桌面与窄屏下检查：最近研究标题、真实问题与回答摘要可读；来源按钮只在可靠来源存在时出现；背景不含具体文字；轮换、悬停暂停和 reduced motion 行为正常。
 

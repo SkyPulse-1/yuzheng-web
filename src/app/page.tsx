@@ -35,7 +35,7 @@ export default async function Home() {
       const { data: messages, error: messageError } = conversationIds.length
         ? await supabase
             .from("messages")
-            .select("conversation_id, evidence_cards_json, created_at")
+            .select("conversation_id, content, evidence_cards_json, created_at")
             .in("conversation_id", conversationIds)
             .eq("role", "assistant")
             .order("created_at", { ascending: false })
