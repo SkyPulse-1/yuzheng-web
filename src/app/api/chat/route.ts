@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { chatWithHiAgent, createHiAgentConversation, isHiAgentTransportConfigured, type HiAgentFile } from "@/lib/hiagent/client";
 import { prepareFileForHiAgent } from "@/lib/hiagent/file-ingestion";
+import { buildEvidenceQuestionQuery } from "@/lib/question-query";
 import { filterAssistantSources } from "@/lib/assistant-sources";
 import { attachUniqueDocumentIds } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
@@ -65,12 +66,12 @@ export async function POST(request: Request) {
     remainingContext -= content.length;
     return [`【文字资料：${document.original_name}】\n${content}\n【资料结束】`];
   }).join("\n\n");
-  const scopeInstruction = selectedIds.length === 0
-    ? "请只根据当前知识库内下列资料回答。"
-    : names.length === 1
-      ? `请只根据“${names[0]}”回答。`
-      : `请比较并综合以下资料：${names.join("、")}。`;
-  const adaptedQuery = [scopeInstruction, directContext, `用户的分析需求：${message}`, "证据不足时请明确说明，不要补写资料中不存在的事实。"].filter(Boolean).join("\n\n");
+  const adaptedQuery = buildEvidenceQuestionQuery({
+    selectedNames: names,
+    useEntireLibrary: selectedIds.length === 0,
+    directContext,
+    message,
+  });
 
   const { data: created, error: createError } = await supabase
     .from("conversations")
