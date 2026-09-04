@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { RecentEvidenceCarousel } from "@/components/home/recent-evidence-carousel";
@@ -80,7 +81,9 @@ export default async function Home() {
     <main className="home-shell">
       <nav className="home-nav" aria-label="首页导航">
         <Link href="/" aria-label="语证产品首页" className="home-brand">
-          <span className="home-brand-mark">证</span>
+          <span className="home-brand-mark">
+            <Image src="/assets/yuzheng-mark.png" alt="" width={44} height={44} priority />
+          </span>
           <span>
             <span className="home-brand-name">语证</span>
             <span className="home-brand-en">TRACEABLE EVIDENCE</span>

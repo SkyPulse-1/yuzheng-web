@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { signOut } from "@/app/dashboard/actions";
@@ -15,7 +16,9 @@ export async function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-outline/80 bg-surface/82 backdrop-blur-xl">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
         <Link href="/" aria-label="返回语证产品首页" className="flex min-w-0 items-center gap-3 rounded-xl">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-serif text-base text-white shadow-[0_7px_18px_rgba(32,43,91,0.18)]">证</span>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-outline/70 bg-white/80 p-1 shadow-[0_7px_18px_rgba(32,43,91,0.13)]">
+            <Image src="/assets/yuzheng-mark.png" alt="" width={32} height={32} priority />
+          </span>
           <span className="min-w-0"><span className="block font-semibold tracking-[0.16em] text-ink">语证</span><span className="hidden text-[11px] text-muted sm:block">个人学术知识空间</span></span>
         </Link>
         <nav aria-label="主导航" className="flex items-center gap-1 sm:gap-2">
