@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createInlineTextResponse } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -12,12 +13,22 @@ export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const { data: document, error } = await supabase
     .from("documents")
-    .select("storage_path")
+    .select("storage_path, source_kind, text_content, original_name")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: "暂时无法读取文档。" }, { status: 500 });
   if (!document) return NextResponse.json({ error: "文档不存在。" }, { status: 404 });
+
+  if (document.source_kind === "TEXT") {
+    if (typeof document.text_content !== "string") {
+      return NextResponse.json({ error: "文字资料内容不存在。" }, { status: 404 });
+    }
+    return createInlineTextResponse(document.text_content, document.original_name);
+  }
+
+  if (!document.storage_path) return NextResponse.json({ error: "文件内容不存在。" }, { status: 404 });
 
   const { data, error: signedUrlError } = await supabase.storage.from("documents").createSignedUrl(document.storage_path, 60);
   if (signedUrlError || !data.signedUrl) return NextResponse.json({ error: "暂时无法打开文档。" }, { status: 500 });

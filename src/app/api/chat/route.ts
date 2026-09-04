@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { callHiAgent, isHiAgentConfigured } from "@/lib/hiagent/client";
+import { chatWithHiAgent, createHiAgentConversation, isHiAgentTransportConfigured, type HiAgentFile } from "@/lib/hiagent/client";
+import { prepareFileForHiAgent } from "@/lib/hiagent/file-ingestion";
+import { buildEvidenceQuestionQuery } from "@/lib/question-query";
+import { filterAssistantSources } from "@/lib/assistant-sources";
+import { attachUniqueDocumentIds } from "@/lib/evidence-sources";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
-type ChatBody = { conversationId?: unknown; libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
+type ChatBody = { libraryId?: unknown; selectedDocumentIds?: unknown; message?: unknown };
+
+const DIRECT_TEXT_CONTEXT_LIMIT = 24_000;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
   if (!user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
 
   const body = await request.json().catch(() => null) as ChatBody | null;
   const libraryId = typeof body?.libraryId === "string" ? body.libraryId : "";
@@ -22,43 +30,134 @@ export async function POST(request: Request) {
   const { data: library } = await supabase.from("libraries").select("id, name").eq("id", libraryId).maybeSingle();
   if (!library) return NextResponse.json({ error: "知识库不存在。" }, { status: 404 });
 
-  let selectedDocuments: { id: string; original_name: string }[] = [];
+  let selectedDocuments: { id: string; original_name: string; source_kind: "FILE" | "TEXT"; text_content: string | null; status: string; storage_path: string | null; mime_type: string; size_bytes: number }[] = [];
   if (selectedIds.length) {
-    const { data } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY").in("id", selectedIds);
-    selectedDocuments = data ?? [];
+    const { data } = await supabase
+      .from("documents")
+      .select("id, original_name, source_kind, text_content, status, storage_path, mime_type, size_bytes")
+      .eq("library_id", libraryId)
+      .is("deleted_at", null)
+      .in("id", selectedIds);
+    selectedDocuments = filterAssistantSources((data ?? []) as typeof selectedDocuments);
     if (selectedDocuments.length !== new Set(selectedIds).size) return NextResponse.json({ error: "所选文档不存在、尚未解析或不属于当前知识库。" }, { status: 400 });
-  }
-
-  const names = selectedDocuments.map((document) => document.original_name);
-  const mode = names.length === 0 ? "GENERAL" : names.length === 1 ? "SINGLE" : "MULTI";
-  const adaptedQuery = mode === "GENERAL" ? message : mode === "SINGLE" ? `仅根据 ${names[0]}，${message}` : `比较 ${names.join("、")}，${message}`;
-  if (!isHiAgentConfigured()) return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
-
-  let conversationId = typeof body?.conversationId === "string" ? body.conversationId : "";
-  if (conversationId) {
-    const { data: conversation } = await supabase.from("conversations").select("id").eq("id", conversationId).eq("library_id", libraryId).maybeSingle();
-    if (!conversation) return NextResponse.json({ error: "对话不存在。" }, { status: 404 });
   } else {
-    const { data: created, error } = await supabase.from("conversations").insert({ owner_id: user.id, library_id: libraryId, title: message.slice(0, 100) }).select("id").single();
-    if (error || !created) return NextResponse.json({ error: "无法创建对话。" }, { status: 500 });
-    conversationId = created.id;
+    const { data } = await supabase
+      .from("documents")
+      .select("id, original_name, source_kind, text_content, status, storage_path, mime_type, size_bytes")
+      .eq("library_id", libraryId)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false });
+    selectedDocuments = filterAssistantSources((data ?? []) as typeof selectedDocuments);
   }
 
-  await supabase.from("messages").insert({ owner_id: user.id, conversation_id: conversationId, role: "user", content: message });
+  if (!selectedDocuments.length) return NextResponse.json({ error: "当前知识库还没有可分析的资料。" }, { status: 400 });
+  const names = selectedDocuments.map((document) => document.original_name);
+  const mode = selectedIds.length === 0 ? "GENERAL" : names.length === 1 ? "SINGLE" : "MULTI";
+  const fileDocuments = selectedDocuments.filter((document) => document.source_kind !== "TEXT" && document.storage_path);
+  const textDocuments = selectedDocuments.filter((document) => document.source_kind === "TEXT" && document.text_content);
+  if (!isHiAgentTransportConfigured()) {
+    return NextResponse.json({ error: "问答功能尚未配置完成，请稍后再试。" }, { status: 503 });
+  }
+
+  let remainingContext = DIRECT_TEXT_CONTEXT_LIMIT;
+  const directContext = textDocuments.flatMap((document) => {
+    if (!remainingContext || !document.text_content) return [];
+    const content = document.text_content.slice(0, remainingContext);
+    remainingContext -= content.length;
+    return [`【文字资料：${document.original_name}】\n${content}\n【资料结束】`];
+  }).join("\n\n");
+  const adaptedQuery = buildEvidenceQuestionQuery({
+    selectedNames: names,
+    useEntireLibrary: selectedIds.length === 0,
+    directContext,
+    message,
+  });
+
+  const { data: created, error: createError } = await supabase
+    .from("conversations")
+    .insert({
+      owner_id: user.id,
+      library_id: libraryId,
+      title: message.slice(0, 100),
+      status: "PROCESSING",
+      selected_document_ids: selectedIds,
+      source_scope_count: selectedDocuments.length,
+      last_error: null,
+    })
+    .select("id")
+    .single();
+  if (createError || !created) return NextResponse.json({ error: "无法创建问题卡片。" }, { status: 500 });
+  const conversationId = created.id;
+
+  const { error: messageError } = await supabase
+    .from("messages")
+    .insert({ owner_id: user.id, conversation_id: conversationId, role: "user", content: message });
+  if (messageError) {
+    await supabase.from("conversations").update({ status: "FAILED", last_error: "问题保存失败，请重试。" }).eq("id", conversationId);
+    return NextResponse.json({ error: "无法保存问题，请重试。", conversationId }, { status: 500 });
+  }
+
+  const textDocumentIds = textDocuments.map((document) => document.id);
+  if (textDocumentIds.length) {
+    const { error: lockError } = await service
+      .from("documents")
+      .update({ analysis_started_at: new Date().toISOString() })
+      .eq("owner_id", user.id)
+      .in("id", textDocumentIds)
+      .is("analysis_started_at", null);
+    if (lockError) {
+      await supabase.from("conversations").update({ status: "FAILED", last_error: "文字资料暂时无法锁定，请重试。" }).eq("id", conversationId);
+      return NextResponse.json({ error: "文字资料暂时无法锁定，请重试。", conversationId }, { status: 500 });
+    }
+  }
+
   try {
-    const result = await callHiAgent({ userId: user.id, query: adaptedQuery, ownerId: user.id, libraryId, selectedDocuments: names });
-    const { data: sourceDocuments } = await supabase.from("documents").select("id, original_name").eq("library_id", libraryId).eq("status", "READY");
-    const documentIdsByName = new Map((sourceDocuments ?? []).map((document) => [document.original_name, document.id]));
-    const evidenceCards = result.evidenceCards.map((card) => ({ ...card, document_id: documentIdsByName.get(card.document_name) }));
+    const hiAgentConversationId = await createHiAgentConversation({ userId: user.id });
+    await supabase.from("conversations").update({ hiagent_conversation_id: hiAgentConversationId }).eq("id", conversationId);
+    const files: HiAgentFile[] = selectedIds.length > 0 && fileDocuments.length
+      ? await Promise.all(fileDocuments.map((document) => prepareFileForHiAgent({
+          storagePath: document.storage_path as string,
+          originalName: document.original_name,
+          sizeBytes: document.size_bytes,
+          mimeType: document.mime_type,
+        })))
+      : [];
+    const result = await chatWithHiAgent({ userId: user.id, conversationId: hiAgentConversationId, query: adaptedQuery, files });
+    const evidenceCards = attachUniqueDocumentIds(result.evidenceCards, selectedDocuments);
     const { data: savedMessage, error: saveError } = await supabase
       .from("messages")
       .insert({ owner_id: user.id, conversation_id: conversationId, role: "assistant", content: result.answer, evidence_cards_json: evidenceCards })
       .select("id")
       .single();
-    if (saveError || !savedMessage) return NextResponse.json({ error: "回答已完成，但保存失败，请重试。", conversationId }, { status: 500 });
-    await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
-    return NextResponse.json({ conversationId, evidenceMessageId: savedMessage.id, mode, answer: result.answer, evidenceCards, meta: { selectedDocumentCount: names.length } });
+    if (saveError || !savedMessage) {
+      await supabase.from("conversations").update({ status: "FAILED", last_error: "回答已完成，但保存失败，请重试。" }).eq("id", conversationId);
+      return NextResponse.json({ error: "回答已完成，但保存失败，请重试。", conversationId }, { status: 500 });
+    }
+    const updatedAt = new Date().toISOString();
+    await supabase.from("conversations").update({ status: "COMPLETED", last_error: null, updated_at: updatedAt }).eq("id", conversationId);
+    return NextResponse.json({
+      conversationId,
+      evidenceMessageId: savedMessage.id,
+      mode,
+      answer: result.answer,
+      evidenceCards,
+      question: {
+        id: conversationId,
+        question: message,
+        status: "COMPLETED",
+        answer: result.answer,
+        evidenceCards,
+        evidenceCount: evidenceCards.length,
+        selectedDocumentIds: selectedIds,
+        sourceCount: selectedDocuments.length,
+        sourceWarning: null,
+        error: null,
+        createdAt: updatedAt,
+        updatedAt,
+      },
+    });
   } catch {
+    await supabase.from("conversations").update({ status: "FAILED", last_error: "证据分析暂时失败或超时，请重试。" }).eq("id", conversationId);
     return NextResponse.json({ error: "证据分析暂时失败或超时，请重试。", conversationId }, { status: 502 });
   }
 }

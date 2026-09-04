@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+
+import { chatWithHiAgent, createHiAgentConversation, isHiAgentTransportConfigured } from "@/lib/hiagent/client";
+import { prepareFileForHiAgent } from "@/lib/hiagent/file-ingestion";
+import { analyzeSingleSource, readStoredSingleSourceAnalysis } from "@/lib/single-source-analysis";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function POST(_request: Request, context: RouteContext) {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return NextResponse.json({ error: "请先登录。" }, { status: 401 });
+  const service = createServiceClient();
+
+  const { id } = await context.params;
+  const { data: document } = await supabase
+    .from("documents")
+    .select("id, original_name, source_kind, text_content, storage_path, mime_type, size_bytes, analysis_result_json, analysis_status, analysis_started_at, deleted_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (!document || document.deleted_at) return NextResponse.json({ error: "资料不存在或已移入回收站。" }, { status: 404 });
+
+  const cached = readStoredSingleSourceAnalysis(document.analysis_result_json);
+  if (cached) {
+    return NextResponse.json({ result: cached, status: document.analysis_status, cached: true });
+  }
+  if (document.analysis_status === "PROCESSING") {
+    return NextResponse.json({ error: "这份资料正在分析，请稍候。" }, { status: 409 });
+  }
+
+  const sourceKind = document.source_kind === "TEXT" ? "TEXT" : "FILE";
+  if (!isHiAgentTransportConfigured()) {
+    return NextResponse.json({ error: "分析服务尚未配置完成，请稍后再试。" }, { status: 503 });
+  }
+
+  const startedAt = document.analysis_started_at ?? new Date().toISOString();
+  const { error: lockError } = await service
+    .from("documents")
+    .update({ analysis_started_at: startedAt, analysis_status: "PROCESSING", error_message: null })
+    .eq("id", id)
+    .eq("owner_id", auth.user.id);
+  if (lockError) return NextResponse.json({ error: "暂时无法启动分析，请重试。" }, { status: 500 });
+
+  try {
+    const analyzed = await analyzeSingleSource({
+      userId: auth.user.id,
+      sourceKind,
+      sourceName: document.original_name,
+      sourceText: document.text_content,
+      files: sourceKind === "FILE" && document.storage_path
+        ? [await prepareFileForHiAgent({
+            storagePath: document.storage_path,
+            originalName: document.original_name,
+            sizeBytes: document.size_bytes,
+            mimeType: document.mime_type,
+          })]
+        : undefined,
+      dependencies: {
+        createConversation: (userId) => createHiAgentConversation({ userId }),
+        analyze: (request) => chatWithHiAgent(request),
+      },
+    });
+    const message = analyzed.status === "PARTIAL" ? "部分内容暂未得到可靠结果，可以稍后重新分析。" : null;
+    const { error: saveError } = await service
+      .from("documents")
+      .update({
+        analysis_result_json: analyzed.result,
+        analysis_status: analyzed.status,
+        error_message: message,
+      })
+      .eq("id", id)
+      .eq("owner_id", auth.user.id);
+    if (saveError) return NextResponse.json({ error: "分析已完成，但结果保存失败，请重试。" }, { status: 500 });
+    return NextResponse.json({ result: analyzed.result, status: analyzed.status, cached: false, message });
+  } catch {
+    await service
+      .from("documents")
+      .update({ analysis_status: "FAILED", error_message: "没有得到可核验的分析结果，请重试。" })
+      .eq("id", id)
+      .eq("owner_id", auth.user.id);
+    return NextResponse.json({ error: "分析暂时失败或超时，资料已保留，请重试。" }, { status: 502 });
+  }
+}

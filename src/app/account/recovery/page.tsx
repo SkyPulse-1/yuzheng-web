@@ -17,12 +17,12 @@ export default async function AccountRecoveryPage({ searchParams }: { searchPara
   const { error = "" } = await searchParams;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#f5f0e4,_transparent_42%),linear-gradient(180deg,_#faf9f6,_#f0ede6)] px-5 py-10 text-stone-900">
-      <section className="mx-auto mt-4 max-w-xl rounded-3xl border border-stone-200 bg-white p-7 shadow-xl sm:p-10">
-        <Link href="/login" className="text-sm text-stone-500 hover:text-stone-900">← 返回登录</Link>
+    <main className="min-h-screen px-5 py-10 text-ink">
+      <section className="reading-room-section mx-auto mt-4 max-w-xl p-7 sm:p-10">
+        <Link href="/login" className="text-sm text-muted hover:text-primary">← 返回登录</Link>
         <p className="eyebrow mt-10">账号恢复</p>
         <h1 className="mt-3 font-serif text-3xl font-semibold">使用恢复码设置新密码</h1>
-        <p className="mt-4 text-sm leading-7 text-stone-500">成功修改密码后，旧恢复码会失效，系统将生成一条新的恢复码。</p>
+        <p className="mt-4 text-sm leading-7 text-muted">成功修改密码后，旧恢复码会失效，系统将生成一条新的恢复码。</p>
 
         {error ? <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">{errorMessages[error] ?? errorMessages.recovery}</div> : null}
 

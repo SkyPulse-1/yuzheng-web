@@ -13,4 +13,8 @@ describe("getNavigationSection", () => {
     expect(getNavigationSection("/libraries/library-id")).toBe("libraries");
     expect(getNavigationSection("/assistant")).toBe("libraries");
   });
+
+  it("marks the recycle bin separately", () => {
+    expect(getNavigationSection("/trash")).toBe("trash");
+  });
 });
